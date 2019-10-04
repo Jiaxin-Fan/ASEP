@@ -1,0 +1,38 @@
+Allele-Specific Expression in a Population (ASEP)
+======================
+
+`ASEP`, overcomes three analytical challenges, utilizes cross-subject and cross-SNP information to detect gene-level ASE under one condition and differential ASE between two conditions (e.g., pre- versus post-treatment) in a population using RNA sequencing (RNA-seq) data.
+
+<p align="center"> 
+<img src="Figure.png" alt="drawing" width="500"/>
+</p>
+
+
+How to cite `ASEP`
+-------------------
+Please cite the following publication:
+
+> *ASEP: gene-based detection of allele-specific expression in a population by RNA-seq*<br />
+> <small>J. Fan, J. Hu, C. Xue, H. Zhang, M. Reilly, R. Xiao, M. Li<br /></small>
+> (https://doi.org) 
+
+Installation
+------------
+
+``` r
+# install devtools if necessary
+if (!"devtools" %in% rownames(installed.packages())) {
+  install.packages('devtools')
+}
+# install the ASEP package
+if (!"MuSiC" %in% rownames(installed.packages())) {
+  devtools::install_github('Jiaxin-Fan/ASEP')
+}
+# load
+library(ASEP)
+```
+
+More Information
+-----------------
+Please see [Tutorial](https://Jiaxin-Fan.github.io/).
+

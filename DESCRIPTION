@@ -1,0 +1,24 @@
+Package: ASEP
+Type: Package
+Title: ASEP: Gene-based detection of allele-specific expression in a population by RNA seqencing
+Version: 0.1.0
+Authors@R: person("Jiaxin", "Fan", email = "jiaxinf@pennmedicine.upenn.edu", role = c("aut", "cre"))
+Maintainer: Jiaxin Fan <jiaxinf@pennmedicine.upenn.edu>
+Description: Companion package to: ASEP: gene-based detection of allele-specific expression in a population by RNA-seq. This package provide functions to perform cross-individual gene-based ASE detection under one condition and differential ASE detection between two conditions (e.g., pre- vs post-treatment) using the bulk RNA sequencing data.
+Depends: R (>= 3.2)
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
+Imports: 
+    npmlreg,
+    ggplot2,
+    parallel,
+    stats
+Suggests: 
+    knitr,
+    rmarkdown
+URL: https://github.com/Jiaxin-Fan/ASEP
+BugReports: https://github.com/Jiaxin-Fan/ASEP/issues
+VignetteBuilder: knitr
+Roxygen2: 6.1.0
