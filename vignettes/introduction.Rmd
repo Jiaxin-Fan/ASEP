@@ -3,6 +3,11 @@
 %\VignetteEncoding{UTF-8}
 ---
 title: "Introduction to the ASEP R pacakge"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: "Jiaxin Fan"
 output: 
   html_vignette:
@@ -19,7 +24,7 @@ This vignette provides a walk through tutorial on how to use ASEP to perform cro
 
 ### Installation
 
-```{r intallation, eval=FALSE}
+```{r intallation, echo=FALSE, message=FALSE}
 # install devtools if necessary
 if (!"devtools" %in% rownames(installed.packages())) {
   install.packages('devtools')
