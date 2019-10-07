@@ -212,9 +212,9 @@ Similar as one condition analysis, the first step for detecting gene-level diffe
 
 <style>
 .centers{
-    width:70%; 
-    margin-left:15%; 
-    margin-right:15%;
+    width:68%; 
+    margin-left:16%; 
+    margin-right:16%;
 }
 </style>
 
@@ -242,9 +242,9 @@ dat_phased = phasing(dat, phased=FALSE, n_condition="two")
 
 <style>
 .center{
-    width:76%; 
-    margin-left:12%; 
-    margin-right:12%;
+    width:75%; 
+    margin-left:12.5%; 
+    margin-right:12.5%;
 }
 </style>
 
