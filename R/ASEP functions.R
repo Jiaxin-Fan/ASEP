@@ -3,21 +3,26 @@
 # Author: Jiaxin Fan
 ###################################################
 
-#' @title Haplotype Pseudo Alignment
+#' @title Haplotype pseudo alignment
 #'
 #' @description This function is used to obtain the pseudo haplotype phase of the RNA-seq data for a given gene, and align the major alleles across individuals.
-#' @param dat: bulk RNA-seq dataset of a given gene. Must contain variables with names: \cr
-#'     * One condition analysis: "id", "ref", "total". \cr
-#'       - "id": character, individual identifier;
-#'       - "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-#'       - "total": numeric, snp-level total read counts for both alleles;
-#'     * Two condition analysis: "id", "snp", "ref", "total", "group", "ref_condition". \cr
-#'       - "snp": character, the name/chromosome location of the heterzygous genetic variants;
-#'       - "group": character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
-#'       - "ref_condition": character, the condition used as the reference for pseudo haplotype phasing;
-#' @param phased: a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE
+#' @param dat: bulk RNA-seq dataset of a given gene. Must contain variables:
+#'             \itemize{
+#'                \item One condition analysis: \cr
+#'                  - `id`: character, individual identifier; \cr
+#'                  - `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;\cr
+#'                  - `total`: numeric, snp-level total read counts for both alleles;\cr
+#'                \item Two conditions analysis:  \cr
+#'                  - `id`: character, individual identifier; \cr
+#'                  - `snp`: character, the name/chromosome location of the heterzygous genetic variants; \cr
+#'                  - `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;\cr
+#'                  - `total`: numeric, snp-level total read counts for both alleles;\cr
+#'                  - `group`: character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment); \cr
+#'                  - `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing; \cr
+#'             }
+#' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
 #' @param n_condition: a character string indicates whether the RNA-seq data contains data from only one condition or two conditions (i.e. normal vs diseased). Possible values are "one" or "two". Default is "one"
-#' @return The psudo-phased data for the input RNA-seq data, where column "major" indicates the read counts for major alleles aligned across individuals
+#' @return The psudo-phased RNA-seq data, with one more column "major" indicates the read counts for major alleles aligned across individuals
 #' @export
 #' @import stats
 
@@ -87,16 +92,18 @@ phasing<-function(dat, phased=FALSE, n_condition="one"){
   return(dat_phase)
 }
 
-#' @title Fit Generalized Linear Mixed-Effect Model
+#' @title Fit generalized linear mixed-effect model
 #'
 #' @description This function is used to fit the generalized linear mixed-effect model through nonparametric maximum likelihood estimation for a given gene.
 #' @param dat_phase: Psudo-phased bulk RNA-seq data of a given gene
 #' @param n_condition: a character string indicates whether to perform one condition analysis or two conditions analysis. Possible values are "one" or "two". Default is "one"
 #' @param resampled_data: a logical value indicates whether the data analyzed is obtained from resampling or not. Used for two conditions analysis only. Default is FALSE
 #' @return One of: \cr
-#'    * the test statistic for allele specific expression (ASE) detection - when modeling the original/resampled data under one condition analysis \cr
-#'    * the test statistic for differential ASE detection - when modeling the resampled data under two conditions analysis \cr
-#'    * the test statistic for differential ASE detection & the estimated ASE effect in the pooled sample - when modeling the original data under two conditions analysis \cr
+#'    \itemize{
+#'        \item the test statistic for ASE detection - when modeling the original/resampled data under one condition analysis;
+#'        \item the test statistic for differential ASE detection - when modeling the resampled data under two conditions analysis;
+#'        \item the test statistic for differential ASE detection & the estimated ASE effect in the pooled sample - when modeling the original data under two conditions analysis;
+#'    }
 #' @export
 #' @import npmlreg
 
@@ -168,14 +175,16 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
   }
 }
 
-#' @title Perform gene-level ASE analysis
+#' @title Perform ASE analysis in the population for a given gene
 #'
 #' @description This function is used to perform ASE detection for one condition analysis of a given gene.
-#' @param dat: bulk RNA-seq data of a given gene. Must contain variables with names: \cr
-#'       * "id": character, individual identifier;
-#'       * "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-#'       * "total": numeric, snp-level total read counts for both alleles; \cr
-#' @param phased: a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE
+#' @param dat: bulk RNA-seq data of a given gene. Must contain variables:
+#'             \itemize{
+#'                  \item `id`: character, individual identifier;
+#'                  \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
+#'                  \item `total`: numeric, snp-level total read counts for both alleles;
+#'             }
+#' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
@@ -183,8 +192,11 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
 #' @param n_core: a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1
-#' @return The test statistic and its estimated p-value from resampling
-#' @export
+#' @return A vector with two elements:
+#'       \itemize{
+#'          \item `test statistic`: numeric, the test statistics of ASE effect;
+#'          \item `p-value`: the estimated p-value of the test statistic;
+#'       }
 #' @import parallel
 
 one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adaptive=TRUE, parallel=FALSE, n_core = 1){
@@ -289,17 +301,19 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
   return(c("test statistic" = mudiff, "p-value" = pvalue))
 }
 
-#' @title Perform gene-level differential ASE analysis
+#' @title Perform differential ASE analysis in the population for a given gene
 #'
 #' @description This function is used to perform differential ASE detection for two conditions analysis of a given gene.
-#' @param dat: bulk RNA-seq data of a given gene. Must contain variables with names: "id", "snp", "ref", "total", "group", "ref_condition" \cr
-#'       * "id": character, individual identifier;
-#'       * "snp": character, the name/chromosome location of the heterzygous genetic variants;
-#'       * "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-#'       * "total": numeric, snp-level total read counts for both alleles;
-#'       * "group": character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
-#'       * "ref_condition": character, the condition used as the reference for pseudo haplotype phasing;
-#' @param phased: a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE
+#' @param dat: bulk RNA-seq data of a given gene. Must contain variables \cr
+#'       \itemize{
+#'           \item `id`: character, individual identifier;
+#'           \item `snp`: character, the name/chromosome location of the heterzygous genetic variants;
+#'           \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;
+#'           \item `total`: numeric, snp-level total read counts for both alleles;
+#'           \item `group`: character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
+#'           \item `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing;
+#'       }
+#' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
@@ -307,8 +321,11 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
 #' @param n_core: a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1
-#' @return The test statistic and its estimated p-value from resampling
-#' @export
+#' @return A vector with two elements:
+#'       \itemize{
+#'          \item `test statistic`: numeric, the test statistics of differential ASE effect;
+#'          \item `p-value`: the estimated p-value of the test statistic;
+#'       }
 #' @import parallel
 
 two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, n_core = 1){
@@ -438,15 +455,17 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
   return(c("test statistic" = unname(mudiff), "p-value" = pvalue))
 }
 
-#' @title Perform gene-level ASE detection across genes
+#' @title Perform gene-level ASE analysis in the population across genes
 #'
-#' @description This function is used to detect ASE genes given bulk RNA-seq data that may contain multiple genes.
-#' @param dat_all: bulk RNA-seq data. Must contain variables with names: "gene", "id", "ref", "total" \cr
-#'       * "gene: character, gene name;
-#'       * "id": character, individual identifier;
-#'       * "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-#'       * "total": numeric, snp-level total read counts for both alleles; \cr
-#' @param phased: a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE
+#' @description This function is used to detect ASE genes under one condition given bulk RNA-seq data that may contain multiple genes.
+#' @param dat_all: bulk RNA-seq data. Must contain variables: \cr
+#'       \itemize{
+#'           \item `gene`: character, gene name;
+#'           \item `id`: character, individual identifier;
+#'           \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
+#'           \item `total`: numeric, snp-level total read counts for both alleles;
+#'       }
+#' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
@@ -457,9 +476,11 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
 #' @param save_out: a logical value indicates whether to write out the result for each gene stepwisely to a txt file. Default is FALSE
 #' @param name_out: a character string indicates the output file name when save_out is set to TRUE, with the format of "XXX.txt"
 #' @return A matrix with three columns:
-#'       * "gene": character, gene name;
-#'       * "test statistic": numeric, the test statistics of ASE effect;
-#'       * "p-value": the estimated p-value of the test statistic;
+#'       \itemize{
+#'          \item `gene`: character, gene name;
+#'          \item `test statistic`: numeric, the test statistics of ASE effect;
+#'          \item `p-value`: the estimated p-value of the test statistic;
+#'       }
 #' @export
 #' @import parallel
 
@@ -487,18 +508,20 @@ ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6,
   return(result_all)
 }
 
-#' @title Perform gene-level differential ASE analysis across genes
+#' @title Perform gene-level differential ASE analysis in the population across genes
 #'
-#' @description This function is used to detect differential ASE genes given bulk RNA-seq data that may contain multiple genes.
-#' @param dat_all: bulk RNA-seq data. Must contain variables with names: \cr
-#'       * "gene": character, gene name;
-#'       * "id": character, individual identifier;
-#'       * "snp": character, the name/chromosome location of the heterzygous genetic variants;
-#'       * "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-#'       * "total": numeric, snp-level total read counts for both alleles;
-#'       * "group": character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
-#'       * "ref_condition": character, the condition used as the reference for pseudo haplotype phasing;
-#' @param phased: a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE
+#' @description This function is used to detect differential ASE genes between two conditions given bulk RNA-seq data that may contain multiple genes.
+#' @param dat_all: bulk RNA-seq data. Must contain variables: \cr
+#'       \itemize{
+#'          \item `gene`: character, gene name;
+#'          \item `id`: character, individual identifier;
+#'          \item `snp`: character, the name/chromosome location of the heterzygous genetic variants;
+#'          \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;
+#'          \item `total`: numeric, snp-level total read counts for both alleles;
+#'          \item `group`: character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
+#'          \item `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing;
+#'       }
+#' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
@@ -509,9 +532,11 @@ ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6,
 #' @param save_out: a logical value indicates whether to write out the result for each gene stepwisely to a txt file. Default is FALSE
 #' @param name_out: a character string indicates the output file name when save_out is set to TRUE, with the format of "XXX.txt"
 #' @return  A matrix with three columns:
-#'       * "gene": character, gene name;
-#'       * "test statistic": numeric, the test statistics of differential ASE effect;
-#'       * "p-value": the estimated p-value of the test statistic;
+#'       \itemize{
+#'          \item `gene`: character, gene name;
+#'          \item `test statistic`: numeric, the test statistics of differential ASE effect;
+#'          \item `p-value`: the estimated p-value of the test statistic;
+#'       }
 #' @export
 #' @import parallel
 
@@ -549,22 +574,24 @@ differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_r
   return(result_all)
 }
 
-#' @title Plot of the estimated SNP-level ASE difference
+#' @title Boxplot of the estimated SNP-level ASE difference between two conditions
 #'
 #' @description This function is used to showed the estimated SNP-level ASE difference, i.e. major allele proportion difference,
 #' between two condition samples across all individuals and SNPs after haplotype phasing.
 #' The individuals are aligned based on an increasing trend of their median ASE differences across all snps for a given gene.
-#' @param dat: bulk RNA-seq data of a given gene. Must contain variables with names: \cr
-#'       * "gene": character, gene name;
-#'       * "id": character, individual identifier;
-#'       * "snp": character, the name/chromosome location of the heterzygous genetic variants;
-#'       * "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-#'       * "total": numeric, snp-level total read counts for both alleles;
-#'       * "group": character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
-#'       * "ref_condition": character, the condition used as the reference for pseudo haplotype phasing; \cr
-#' @param phased: a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE
-#' @param minu_ref: a logical value indicates when calculating the difference, whether the condition treated as the minuend, i.e. the difference is calculated as estimated ASE for minuend_condition minus the other condition, is the same as "ref_condition". Default is TRUE
-#' @return The boxplot showed the estimated SNP-level ASE difference across individuals
+#' @param dat: bulk RNA-seq data of a given gene. Must contain variables: \cr
+#'       \itemize{
+#'          \item `gene`: character, gene name;
+#'          \item `id`: character, individual identifier;
+#'          \item `snp`: character, the name/chromosome location of the heterzygous genetic variants;
+#'          \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;
+#'          \item `total`: numeric, snp-level total read counts for both alleles;
+#'          \item `group`: character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
+#'          \item `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing;
+#'       }
+#' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
+#' @param minu_ref: a logical value indicates when calculating the difference, whether the "ref_condition" should be treated as the minuend, i.e. the difference is calculated as estimated ASE for minuend_condition minus that for the other condition. Default is TRUE
+#' @return The boxplot (ggplot2::geom_boxplot) of the estimated SNP-level ASE difference between two conditions across individuals
 #' @export
 #' @import ggplot2
 

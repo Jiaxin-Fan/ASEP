@@ -2,20 +2,22 @@
 % Please edit documentation in R/ASEP functions.R
 \name{ASE_detection}
 \alias{ASE_detection}
-\title{Perform gene-level ASE detection across genes}
+\title{Perform gene-level ASE analysis in the population across genes}
 \usage{
 ASE_detection(dat_all, phased = FALSE, adaptive = TRUE,
   n_resample = 10^6, parallel = FALSE, n_core = 1,
   save_out = FALSE, name_out = NULL)
 }
 \arguments{
-\item{dat_all:}{bulk RNA-seq data. Must contain variables with names: "gene", "id", "ref", "total" \cr
-* "gene: character, gene name;
-* "id": character, individual identifier;
-* "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-* "total": numeric, snp-level total read counts for both alleles; \cr}
+\item{dat_all:}{bulk RNA-seq data. Must contain variables: \cr
+\itemize{
+    \item `gene`: character, gene name;
+    \item `id`: character, individual identifier;
+    \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
+    \item `total`: numeric, snp-level total read counts for both alleles;
+}}
 
-\item{phased:}{a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE}
+\item{phased:}{a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE}
 
 \item{n_resample:}{a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6}
 
@@ -34,10 +36,12 @@ The procedure continuous until reaches the maximum number of resampling.}
 }
 \value{
 A matrix with three columns:
-      * "gene": character, gene name;
-      * "test statistic": numeric, the test statistics of ASE effect;
-      * "p-value": the estimated p-value of the test statistic;
+      \itemize{
+         \item `gene`: character, gene name;
+         \item `test statistic`: numeric, the test statistics of ASE effect;
+         \item `p-value`: the estimated p-value of the test statistic;
+      }
 }
 \description{
-This function is used to detect ASE genes given bulk RNA-seq data that may contain multiple genes.
+This function is used to detect ASE genes under one condition given bulk RNA-seq data that may contain multiple genes.
 }

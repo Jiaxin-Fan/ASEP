@@ -4,9 +4,8 @@ Allele-Specific Expression in a Population (ASEP)
 `ASEP`, overcomes three analytical challenges, utilizes cross-subject and cross-SNP information to detect gene-level ASE under one condition and differential ASE between two conditions (e.g., pre- versus post-treatment) in a population using RNA sequencing (RNA-seq) data.
 
 <p align="center"> 
-<img src="Figure.png" alt="drawing" width="500"/>
+<img src="https://github.com/Jiaxin-Fan/ASEP/raw/master/Figure.png" width="500">
 </p>
-
 
 How to cite `ASEP`
 -------------------

@@ -2,18 +2,20 @@
 % Please edit documentation in R/ASEP functions.R
 \name{one_condition_analysis_Gene}
 \alias{one_condition_analysis_Gene}
-\title{Perform gene-level ASE analysis}
+\title{Perform ASE analysis in the population for a given gene}
 \usage{
 one_condition_analysis_Gene(dat, phased = FALSE, n_resample = 10^6,
   adaptive = TRUE, parallel = FALSE, n_core = 1)
 }
 \arguments{
-\item{dat:}{bulk RNA-seq data of a given gene. Must contain variables with names: \cr
-* "id": character, individual identifier;
-* "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-* "total": numeric, snp-level total read counts for both alleles; \cr}
+\item{dat:}{bulk RNA-seq data of a given gene. Must contain variables:
+\itemize{
+     \item `id`: character, individual identifier;
+     \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
+     \item `total`: numeric, snp-level total read counts for both alleles;
+}}
 
-\item{phased:}{a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE}
+\item{phased:}{a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE}
 
 \item{n_resample:}{a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6}
 
@@ -27,7 +29,11 @@ The procedure continuous until reaches the maximum number of resampling. \cr}
 \item{n_core:}{a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1}
 }
 \value{
-The test statistic and its estimated p-value from resampling
+A vector with two elements:
+      \itemize{
+         \item `test statistic`: numeric, the test statistics of ASE effect;
+         \item `p-value`: the estimated p-value of the test statistic;
+      }
 }
 \description{
 This function is used to perform ASE detection for one condition analysis of a given gene.

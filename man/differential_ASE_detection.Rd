@@ -2,23 +2,25 @@
 % Please edit documentation in R/ASEP functions.R
 \name{differential_ASE_detection}
 \alias{differential_ASE_detection}
-\title{Perform gene-level differential ASE analysis across genes}
+\title{Perform gene-level differential ASE analysis in the population across genes}
 \usage{
 differential_ASE_detection(dat_all, phased = FALSE, adaptive = TRUE,
   n_resample = 10^6, parallel = FALSE, n_core = 1,
   save_out = FALSE, name_out = NULL)
 }
 \arguments{
-\item{dat_all:}{bulk RNA-seq data. Must contain variables with names: \cr
-* "gene": character, gene name;
-* "id": character, individual identifier;
-* "snp": character, the name/chromosome location of the heterzygous genetic variants;
-* "ref": numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;
-* "total": numeric, snp-level total read counts for both alleles;
-* "group": character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
-* "ref_condition": character, the condition used as the reference for pseudo haplotype phasing;}
+\item{dat_all:}{bulk RNA-seq data. Must contain variables: \cr
+\itemize{
+   \item `gene`: character, gene name;
+   \item `id`: character, individual identifier;
+   \item `snp`: character, the name/chromosome location of the heterzygous genetic variants;
+   \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;
+   \item `total`: numeric, snp-level total read counts for both alleles;
+   \item `group`: character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment);
+   \item `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing;
+}}
 
-\item{phased:}{a logical value indicates whether the RNA-seq data is properly phased with respect to the haplotype or not. Default is FALSE}
+\item{phased:}{a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE}
 
 \item{n_resample:}{a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6}
 
@@ -37,10 +39,12 @@ The procedure continuous until reaches the maximum number of resampling.}
 }
 \value{
 A matrix with three columns:
-      * "gene": character, gene name;
-      * "test statistic": numeric, the test statistics of differential ASE effect;
-      * "p-value": the estimated p-value of the test statistic;
+      \itemize{
+         \item `gene`: character, gene name;
+         \item `test statistic`: numeric, the test statistics of differential ASE effect;
+         \item `p-value`: the estimated p-value of the test statistic;
+      }
 }
 \description{
-This function is used to detect differential ASE genes given bulk RNA-seq data that may contain multiple genes.
+This function is used to detect differential ASE genes between two conditions given bulk RNA-seq data that may contain multiple genes.
 }

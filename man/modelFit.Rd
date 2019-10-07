@@ -2,7 +2,7 @@
 % Please edit documentation in R/ASEP functions.R
 \name{modelFit}
 \alias{modelFit}
-\title{Fit Generalized Linear Mixed-Effect Model}
+\title{Fit generalized linear mixed-effect model}
 \usage{
 modelFit(dat_phase, n_condition = "one", resampled_data = FALSE)
 }
@@ -15,9 +15,11 @@ modelFit(dat_phase, n_condition = "one", resampled_data = FALSE)
 }
 \value{
 One of: \cr
-   * the test statistic for allele specific expression (ASE) detection - when modeling the original/resampled data under one condition analysis \cr
-   * the test statistic for differential ASE detection - when modeling the resampled data under two conditions analysis \cr
-   * the test statistic for differential ASE detection & the estimated ASE effect in the pooled sample - when modeling the original data under two conditions analysis \cr
+   \itemize{
+       \item the test statistic for ASE detection - when modeling the original/resampled data under one condition analysis;
+       \item the test statistic for differential ASE detection - when modeling the resampled data under two conditions analysis;
+       \item the test statistic for differential ASE detection & the estimated ASE effect in the pooled sample - when modeling the original data under two conditions analysis;
+   }
 }
 \description{
 This function is used to fit the generalized linear mixed-effect model through nonparametric maximum likelihood estimation for a given gene.
