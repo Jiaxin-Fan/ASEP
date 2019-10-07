@@ -212,9 +212,9 @@ Similar as one condition analysis, the first step for detecting gene-level diffe
 
 <style>
 .centers{
-    width:68%; 
-    margin-left:16%; 
-    margin-right:16%;
+    width:66%; 
+    margin-left:17%; 
+    margin-right:17%;
 }
 </style>
 
