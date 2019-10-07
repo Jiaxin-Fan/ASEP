@@ -33,5 +33,5 @@ library(ASEP)
 
 More Information
 -----------------
-Please see [Tutorial](https://Jiaxin-Fan.github.io/).
+Please see [Tutorial](https://jiaxin-fan.github.io/ASEP/articles/introduction.html).
 
