@@ -211,15 +211,15 @@ datatable(dat_M1_phased, class = 'cell-border stripe', rownames = FALSE,
 Similar as one condition analysis, the first step for detecting gene-level differential ASE is to align the major alleles across *tSNP*s and individuals for both conditions. To ensure that major alelles are identical for the same individual under different conditions, we choose one condition as the "reference" (`ref_condition`), obtain its phasing information, and phase the data from the other condition accordingly. Since gene "RAC2" only showed ASE effect under M1 macrophages, we chose 'M1' as the `ref_condition`. The table below shows the input RNA-seq data for two conditions analysis.
 
 <style>
-.center{
-    width:76%; 
-    margin-left:12%; 
-    margin-right:12%;
+.centers{
+    width:70%; 
+    margin-left:15%; 
+    margin-right:15%;
 }
 </style>
 
 
-<div class="center">
+<div class="centers">
 ```{r, echo=FALSE}
 datatable(dat, class = 'cell-border stripe', rownames = FALSE, 
           options = list(pageLength = 5, fixedColumns = T, columnDefs = list(list(className = 'dt-center', targets = 0:6))))
@@ -239,6 +239,14 @@ Again, we do not output the pseudo aligned data when using function `differentia
 ```{r two_condiiton_analysis_phasing}
 dat_phased = phasing(dat, phased=FALSE, n_condition="two")
 ```
+
+<style>
+.center{
+    width:76%; 
+    margin-left:12%; 
+    margin-right:12%;
+}
+</style>
 
 <div class="center">
 ```{r, echo=FALSE}
