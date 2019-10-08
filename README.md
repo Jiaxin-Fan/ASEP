@@ -13,7 +13,7 @@ Please cite the following publication:
 
 > *ASEP: gene-based detection of allele-specific expression in a population by RNA-seq*<br />
 > <small>J. Fan, J. Hu, C. Xue, H. Zhang, M. Reilly, R. Xiao, M. Li<br /></small>
-> (https://doi.org) 
+> (https://www.biorxiv.org/content/10.1101/798124v1) 
 
 Installation
 ------------
