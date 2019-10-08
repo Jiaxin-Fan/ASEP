@@ -24,7 +24,7 @@ if (!"devtools" %in% rownames(installed.packages())) {
   install.packages('devtools')
 }
 # install the ASEP package
-if (!"MuSiC" %in% rownames(installed.packages())) {
+if (!"ASEP" %in% rownames(installed.packages())) {
   devtools::install_github('Jiaxin-Fan/ASEP')
 }
 # load
