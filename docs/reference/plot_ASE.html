@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Haplotype pseudo alignment — phasing • ASEP</title>
+<title>Boxplot of the estimated SNP-level ASE — plot_ASE • ASEP</title>
 
 
 <!-- jquery -->
@@ -35,8 +35,10 @@
 
 
 
-<meta property="og:title" content="Haplotype pseudo alignment — phasing" />
-<meta property="og:description" content="This function is used to obtain the pseudo haplotype phase of the RNA-seq data for a given gene, and align the major alleles across individuals." />
+<meta property="og:title" content="Boxplot of the estimated SNP-level ASE — plot_ASE" />
+<meta property="og:description" content="This function is used to showed the estimated SNP-level ASE, i.e. major allele proportion,
+for one condition sample across all individuals and SNPs after haplotype phasing.
+The individuals are aligned based on an increasing trend of their median ASE across all snps for a given gene." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -102,49 +104,41 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Haplotype pseudo alignment</h1>
+    <h1>Boxplot of the estimated SNP-level ASE</h1>
     
-    <div class="hidden name"><code>phasing.Rd</code></div>
+    <div class="hidden name"><code>plot_ASE.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function is used to obtain the pseudo haplotype phase of the RNA-seq data for a given gene, and align the major alleles across individuals.</p>
+    <p>This function is used to showed the estimated SNP-level ASE, i.e. major allele proportion,
+for one condition sample across all individuals and SNPs after haplotype phasing.
+The individuals are aligned based on an increasing trend of their median ASE across all snps for a given gene.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>phasing</span>(<span class='no'>dat</span>, <span class='kw'>phased</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>n_condition</span> <span class='kw'>=</span> <span class='st'>"one"</span>)</pre>
+    <pre class="usage"><span class='fu'>plot_ASE</span>(<span class='no'>dat</span>, <span class='kw'>phased</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>dat:</th>
-      <td><p>bulk RNA-seq dataset of a given gene. Must contain variables:</p><ul>
-<li><p>One condition analysis: <br />
-     - `id`: character, individual identifier; <br />
-     - `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on paternal/maternal haplotype if haplotype phase is known;<br />
-     - `total`: numeric, snp-level total read counts for both alleles;<br /></p></li>
-<li><p>Two conditions analysis:  <br />
-     - `id`: character, individual identifier; <br />
-     - `snp`: character, the name/chromosome location of the heterzygous genetic variants; <br />
-     - `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;<br />
-     - `total`: numeric, snp-level total read counts for both alleles;<br />
-     - `group`: character, the condition each RNA-seq sample is obtained from (i.e., pre- vs post-treatment); <br />
-     - `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing; <br /></p></li>
+      <td><p>bulk RNA-seq data of a given gene. Must contain variables: <br /></p><ul>
+<li><p>`gene`: character, gene name;</p></li>
+<li><p>`id`: character, individual identifier;</p></li>
+<li><p>`snp`: character, the name/chromosome location of the heterzygous genetic variants;</p></li>
+<li><p>`ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;</p></li>
+<li><p>`total`: numeric, snp-level total read counts for both alleles;</p></li>
 </ul></td>
     </tr>
     <tr>
       <th>phased:</th>
       <td><p>a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE</p></td>
     </tr>
-    <tr>
-      <th>n_condition:</th>
-      <td><p>a character string indicates whether the RNA-seq data contains data from only one condition or two conditions (i.e. normal vs diseased). Possible values are "one" or "two". Default is "one"</p></td>
-    </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>The psudo-phased RNA-seq data, with one more column "major" indicates the read counts for major alleles aligned across individuals</p>
+    <p>The boxplot (ggplot2::geom_boxplot) of the estimated SNP-level ASE across individuals</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">

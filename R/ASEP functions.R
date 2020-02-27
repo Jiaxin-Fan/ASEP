@@ -92,57 +92,52 @@ phasing<-function(dat, phased=FALSE, n_condition="one"){
   return(dat_phase)
 }
 
-#' @title Fit generalized linear mixed-effect model
+#' @title Model Fitting
 #'
 #' @description This function is used to fit the generalized linear mixed-effect model through nonparametric maximum likelihood estimation for a given gene.
 #' @param dat_phase: Psudo-phased bulk RNA-seq data of a given gene
 #' @param n_condition: a character string indicates whether to perform one condition analysis or two conditions analysis. Possible values are "one" or "two". Default is "one"
-#' @param resampled_data: a logical value indicates whether the data analyzed is obtained from resampling or not. Used for two conditions analysis only. Default is FALSE
-#' @return One of: \cr
+#' @param resampled_data: a logical value indicates whether the data analyzed is obtained from resampling or not. Used only for two conditions analysis. Default is FALSE
+#' @return
 #'    \itemize{
-#'        \item the test statistic for ASE detection - when modeling the original/resampled data under one condition analysis;
-#'        \item the test statistic for differential ASE detection - when modeling the resampled data under two conditions analysis;
-#'        \item the test statistic for differential ASE detection & the estimated ASE effect in the pooled sample - when modeling the original data under two conditions analysis;
+#'                \item One condition analysis: likelihood ratio test (LRT) statistic;\cr
+#'                \item Two conditions analysis: \cr
+#'                  - original data: estimated ASE effect in the pooled sample & likelihood ratio test (LRT) statistic; \cr
+#'                  - resampled data: likelihood ratio test (LRT) statistic;\cr
 #'    }
 #' @export
-#' @import npmlreg
+#' @import npmlreg lme4
 
 modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
-  mudiff<-NA
+  lrt<-NA
   if (n_condition == "one"){
-    np=tryCatch({allvc(log(major/total)~1,random=~1|id,
-                       family=gaussian, data=dat_phase, k=2, spike.protect = 1,
-                       random.distribution='np',lambda=0.99, plot.opt = 0, verbose = FALSE)},
-                error=function(e){FALSE})
+    np = allvc(cbind(major,(total-major))~1,random=~1|id,
+                       family=binomial(link=logit), data=dat_phase, k=2,
+                       random.distribution='np',plot.opt = 0, verbose = FALSE)
+    mod = suppressMessages({glmer(cbind(major,(total-major)) ~ (1|id),
+                            family=binomial(link=logit), data=dat_phase)})
+
     # check model convergence
-    if((!is.vector(np))){
-      if(np$EMconverged){
-        mu1 = as.numeric(as.character(np$coefficients[1]))
-        mu2 = as.numeric(as.character(np$coefficients[2]))
-        sd1 = as.numeric(as.character(np$sdev$sdevk[1]))
-        sd2 = as.numeric(as.character(np$sdev$sdevk[2]))
-        mudiff = abs(mu1-mu2)/sqrt(sd1^2+sd2^2)
-      }
+    if(np$EMconverged & summary(mod)$optinfo$conv$opt==0){
+        logl1 = np$disparity
+        logl0 = as.vector(summary(mod)$devcomp$cmp['dev'])
+        lrt = logl0-logl1
     }
-    return(mudiff)
+    return(lrt)
   }
   else if (n_condition == "two"){
-    np=tryCatch({allvc(log(major/total)~group,random=~group|id,
-                       family=gaussian,lambda=0.99, spike.protect = 1,
-                       data=dat_phase, k=2, random.distribution='np', plot.opt = 0, verbose = FALSE)},
-                error=function(e){FALSE})
+    np = allvc(cbind(major,(total-major))~1,random=~group|id,
+                       family=binomial(link=logit),data=dat_phase, k=2,
+                       random.distribution='np', plot.opt = 0, verbose = FALSE)
+    mod = allvc(cbind(major,(total-major))~1,random=~1|id,
+                          family=binomial(link=logit), data=dat_phase, k=2,
+                          random.distribution='np',plot.opt = 0, verbose = FALSE)
     # check model convergence
-    if((!is.vector(np))){
-      if(np$EMconverged){
+    if(np$EMconverged & mod$EMconverged){
+        logl1 = np$disparity
+        logl0 = mod$disparity
+        lrt = logl0-logl1
         name_group = grep("group",names(np$coefficients),value=TRUE)[1]
-        mass1diff=abs(exp(as.numeric(as.character(np$coefficients[names(np$coefficients) == "MASS1"]))+
-                          as.numeric(as.character(np$coefficients[names(np$coefficients) == name_group]))+
-                          as.numeric(as.character(np$coefficients[names(np$coefficients) == paste("MASS1:",name_group,sep='')])))-
-                        exp(as.numeric(as.character(np$coefficients[names(np$coefficients) == "MASS1"]))))
-        mass2diff=abs(exp(as.numeric(as.character(np$coefficients[names(np$coefficients) == "MASS2"]))+
-                          as.numeric(as.character(np$coefficients[names(np$coefficients) == name_group])))-
-                        exp(as.numeric(as.character(np$coefficients[names(np$coefficients) == "MASS2"]))))
-        mudiff=unname(abs(mass1diff-mass2diff))
         # obtain the homozygous and heterozygous cis-rSNP group prediction
         # individual from homozygous cis group should have lower ASE, therefore, smaller mean than people from heterozygous group
         if(!resampled_data){
@@ -164,12 +159,12 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
           newprob$poolp=as.numeric(unlist(newprob[homo]))*0.5+
             as.numeric(unlist(newprob[heter]))*newprob$poolp
           dat_allpoolp=merge(dat_phase, newprob, by="id")
-          return(list(mudiff,dat_allpoolp))
+          return(list(lrt,dat_allpoolp))
+        }else{
+          return(lrt)
         }
       }
     }
-    return(mudiff)
-  }
   else{
     stop('Error: "condition" only takes value "one" or "two".')
   }
@@ -191,15 +186,14 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
-#' @param n_core: a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1
 #' @return A vector with two elements:
 #'       \itemize{
-#'          \item `test statistic`: numeric, the test statistics of ASE effect;
-#'          \item `p-value`: the estimated p-value of the test statistic;
+#'          \item `LRT statistic`: numeric, the likelihood ratio test (LRT) statistics of ASE effect;
+#'          \item `p-value`: the estimated p-value of the LRT statistic;
 #'       }
 #' @import parallel
 
-one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adaptive=TRUE, parallel=FALSE, n_core = 1){
+one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adaptive=TRUE, parallel=FALSE){
   # check data
   dat=as.data.frame(dat)
   if (!(all(c("id","ref","total") %in% colnames(dat)))){
@@ -208,8 +202,8 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
   # analysis
   dat_phase<-phasing(dat=dat, phased=phased, n_condition="one")
   dat_phase$total = as.numeric(as.character(dat_phase$total))
-  mudiff = modelFit(dat_phase=dat_phase, n_condition="one")
-  if(is.na(mudiff)){
+  lrt = modelFit(dat_phase=dat_phase, n_condition="one")
+  if(is.na(lrt)){
     pvalue=NA
   }else{
     if(!parallel){
@@ -219,11 +213,11 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
           ref<-x
           dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
           dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
-          mudiffn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
-          return(mudiffn)
+          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
+          return(lrtn)
         })
         testnulldist<-na.omit(testnull)
-        pvalue<-sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+        pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
       }else{
         n_1 = log(n_resample,base=10)
         n_2 = floor(n_1)
@@ -241,11 +235,11 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
             ref<-x
             dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
             dat_resam_phase<-phasing(dat=dat_resam, phased=phased, n_condition="one")
-            mudiffn = modelFit(dat_phase=dat_resam_phase, n_condition="one")
-            return(mudiffn)
+            lrtn = modelFit(dat_phase=dat_resam_phase, n_condition="one")
+            return(lrtn)
           })
           testnulldist<-c(testnulldist, na.omit(testnull))
-          pvalue=sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+          pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
           pvaluecutoff <- pvalueList[i]
           if(pvaluecutoff <= pvalue){
             break
@@ -253,21 +247,21 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
         }
       }
     }else{
+      n_core = detectCores()
+      clus=makeCluster(n_core)
       if(!adaptive){
-        clus=makeCluster(n_core)
         xgene <- sapply(dat_phase$total,function(x){rbinom(n=n_resample,size=x,prob=0.5)})
         clusterExport(clus,list('dat_phase','phasing','modelFit'), envir=environment())
         testnull<-parRapply(clus,xgene,function(x){
           ref<-x
           dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
           dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
-          mudiffn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
-          return(mudiffn)
+          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
+          return(lrtn)
         })
         testnulldist<-na.omit(testnull)
-        pvalue<-sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+        pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
       }else{
-        clus=makeCluster(n_core)
         n_1 = log(n_resample,base=10)
         n_2 = floor(n_1)
         if(n_1==n_2){
@@ -285,11 +279,11 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
             ref<-x
             dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
             dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
-            mudiffn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
-            return(mudiffn)
+            lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
+            return(lrtn)
           })
           testnulldist<-c(testnulldist, na.omit(testnull))
-          pvalue=sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+          pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
           pvaluecutoff <- pvalueList[i]
           if(pvaluecutoff <= pvalue){
             break
@@ -298,7 +292,7 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
       }
     }
   }
-  return(c("test statistic" = mudiff, "p-value" = pvalue))
+  return(c("LRT statistic" = lrt, "p-value" = pvalue))
 }
 
 #' @title Perform differential ASE analysis in the population for a given gene
@@ -320,15 +314,14 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
-#' @param n_core: a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1
 #' @return A vector with two elements:
 #'       \itemize{
-#'          \item `test statistic`: numeric, the test statistics of differential ASE effect;
-#'          \item `p-value`: the estimated p-value of the test statistic;
+#'          \item `LRT statistic`: numeric, the likelihood ratio test (LRT) statistics of differential ASE effect;
+#'          \item `p-value`: the estimated p-value of the LRT statistic;
 #'       }
 #' @import parallel
 
-two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, n_core = 1){
+two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE){
   # check data
   dat=as.data.frame(dat)
   if (all(c("ref","total","id","group","snp","ref_condition") %in% colnames(dat))){
@@ -355,12 +348,12 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
   mod = modelFit(dat_phase=dat_phase, n_condition="two", resampled_data=FALSE)
   # model not converge
   if(length(mod)==1){
-    mudiff = mod
+    lrt = mod
     pvalue=NA
   }
   # converge
   if(length(mod)==2){
-    mudiff = mod[[1]]
+    lrt = mod[[1]]
     dat_allpoolp = mod[[2]]
     gen<-cbind(dat_allpoolp$total,dat_allpoolp$poolp)
 
@@ -370,11 +363,11 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
         ref<-x
         dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
         dat_resam_phase<-phasing(dat=dat_resam, phased=phased, n_condition="two")
-        mudiffn = modelFit(dat_phase=dat_resam_phase, n_condition="two", resampled_data=TRUE)
-        return(mudiffn)
+        lrtn = modelFit(dat_phase=dat_resam_phase, n_condition="two", resampled_data=TRUE)
+        return(lrtn)
       })
       testnulldist<-na.omit(testnull)
-      pvalue<-sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+      pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
     }
 
     if(!parallel & adaptive){
@@ -394,11 +387,11 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
           ref<-x
           dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
           dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="two")
-          mudiffn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
-          return(mudiffn)
+          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
+          return(lrtn)
         })
         testnulldist<-c(testnulldist, na.omit(testnull))
-        pvalue=sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+        pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
         pvaluecutoff <- pvalueList[i]
         if(pvaluecutoff <= pvalue){
           break
@@ -407,6 +400,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
     }
 
     if (parallel & !adaptive){
+      n_core = detectCores()
       clus=makeCluster(n_core)
       xgene<-apply(gen,1,function(x){rbinom(n_resample,x[1],x[2])})
       clusterExport(clus,list('dat_allpoolp','phasing','modelFit'), envir=environment())
@@ -414,14 +408,15 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
         ref<-x
         dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
         dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="two")
-        mudiffn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
-        return(mudiffn)
+        lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
+        return(lrtn)
       })
       testnulldist<-na.omit(testnull)
-      pvalue<-sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+      pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
     }
 
     if(parallel & adaptive){
+      n_core = detectCores()
       clus=makeCluster(n_core)
       n_1 = log(n_resample,base=10)
       n_2 = floor(n_1)
@@ -440,11 +435,11 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
           ref<-x
           dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
           dat_resam_phase<-phasing(dat=dat_resam, phased=phased, n_condition="two")
-          mudiffn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
-          return(mudiffn)
+          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
+          return(lrtn)
         })
         testnulldist<-c(testnulldist, na.omit(testnull))
-        pvalue=sum(ifelse(testnulldist>=mudiff,1,0))/length(testnulldist)
+        pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
         pvaluecutoff <- pvalueList[i]
         if(pvaluecutoff <= pvalue){
           break
@@ -452,7 +447,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
       }
     }
   }
-  return(c("test statistic" = unname(mudiff), "p-value" = pvalue))
+  return(c("LRT statistic" = unname(lrt), "p-value" = pvalue))
 }
 
 #' @title Perform gene-level ASE analysis in the population across genes
@@ -472,32 +467,30 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling.
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
-#' @param n_core: a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1
 #' @param save_out: a logical value indicates whether to write out the result for each gene stepwisely to a txt file. Default is FALSE
 #' @param name_out: a character string indicates the output file name when save_out is set to TRUE, with the format of "XXX.txt"
 #' @return A matrix with three columns:
 #'       \itemize{
 #'          \item `gene`: character, gene name;
-#'          \item `test statistic`: numeric, the test statistics of ASE effect;
-#'          \item `p-value`: the estimated p-value of the test statistic;
+#'          \item `p-value`: the estimated p-value of the  likelihood ratio test (LRT) statistic;
 #'       }
 #' @export
 #' @import parallel
 
-ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, n_core = 1, save_out=FALSE, name_out=NULL){
+ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, save_out=FALSE, name_out=NULL){
   dat_all = as.data.frame(dat_all)
   result_all=NULL
   if(save_out){
     file.create(name_out)
     re_out<-name_out
-    write(c('gene','test statistic','p-value'), re_out, sep="\t",append=TRUE)
+    write(c('gene','p-value'), re_out, sep="\t",append=TRUE)
   }
   if ("gene" %in% colnames(dat_all)){
     dat_all$gene = as.character(dat_all$gene)
     for(gene in unique(dat_all$gene)){
       dat = dat_all[which(dat_all$gene==gene),]
-      result = one_condition_analysis_Gene(dat=dat, phased=phased, adaptive=adaptive, n_resample=n_resample, parallel=parallel, n_core=n_core)
-      result_all = rbind(result_all,c('gene'=gene,result))
+      result = one_condition_analysis_Gene(dat=dat, phased=phased, adaptive=adaptive, n_resample=n_resample, parallel=parallel)
+      result_all = rbind(result_all,c('gene'=gene,result[2]))
       if(save_out){
         write(c('gene'=gene,result), re_out, sep="\t",append=TRUE)
       }
@@ -528,26 +521,24 @@ ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6,
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling.
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
-#' @param n_core: a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1
 #' @param save_out: a logical value indicates whether to write out the result for each gene stepwisely to a txt file. Default is FALSE
 #' @param name_out: a character string indicates the output file name when save_out is set to TRUE, with the format of "XXX.txt"
 #' @return  A matrix with three columns:
 #'       \itemize{
 #'          \item `gene`: character, gene name;
-#'          \item `test statistic`: numeric, the test statistics of differential ASE effect;
-#'          \item `p-value`: the estimated p-value of the test statistic;
+#'          \item `p-value`: the estimated p-value of the likelihood ratio test (LRT) statistic;
 #'       }
 #' @export
 #' @import parallel
 
 
-differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, n_core = 1, save_out=FALSE, name_out=NULL){
+differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, save_out=FALSE, name_out=NULL){
   dat_all = as.data.frame(dat_all)
   result_all=NULL
   if(save_out){
     file.create(name_out)
     re_out<-name_out
-    write(c('gene','test statistic','p-value'), re_out, sep="\t",append=TRUE)
+    write(c('gene','p-value'), re_out, sep="\t",append=TRUE)
   }
   if ("gene" %in% colnames(dat_all)){
     dat_all$gene = as.character(dat_all$gene)
@@ -556,8 +547,8 @@ differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_r
       if( "ref_condition" %in% colnames(dat)){
         ref_condition = unique(dat$ref_condition)
         if(length(ref_condition)==1){
-          result = two_conditions_analysis_Gene(dat=dat, phased=phased, adaptive=adaptive, n_resample=n_resample, parallel=parallel, n_core=n_core)
-          result_all = rbind(result_all,c('gene'=gene,result))
+          result = two_conditions_analysis_Gene(dat=dat, phased=phased, adaptive=adaptive, n_resample=n_resample, parallel=parallel)
+          result_all = rbind(result_all,c('gene'=gene,result[2]))
           if(save_out){
             write(c('gene'=gene,result), re_out, sep="\t",append=TRUE)
           }
@@ -572,6 +563,59 @@ differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_r
     stop('Error: Data must contain column: "gene".')
   }
   return(result_all)
+}
+
+#' @title Boxplot of the estimated SNP-level ASE
+#'
+#' @description This function is used to showed the estimated SNP-level ASE, i.e. major allele proportion,
+#' for one condition sample across all individuals and SNPs after haplotype phasing.
+#' The individuals are aligned based on an increasing trend of their median ASE across all snps for a given gene.
+#' @param dat: bulk RNA-seq data of a given gene. Must contain variables: \cr
+#'       \itemize{
+#'          \item `gene`: character, gene name;
+#'          \item `id`: character, individual identifier;
+#'          \item `snp`: character, the name/chromosome location of the heterzygous genetic variants;
+#'          \item `ref`: numeric, the snp-level read counts for the reference allele if the haplotype phase of the data is unknown, and the snp-level read counts for allele aligned on the same paternal/maternal haplotype for both conditions if haplotype phase is known;
+#'          \item `total`: numeric, snp-level total read counts for both alleles;
+#'       }
+#' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
+#' @return The boxplot (ggplot2::geom_boxplot) of the estimated SNP-level ASE across individuals
+#' @export
+#' @import ggplot2
+
+plot_ASE <- function(dat, phased=FALSE){
+  if("gene" %in% colnames(dat)){
+    gene = unique(dat$gene)
+    if(length(gene)!=1){
+      stop('Error: the input should contain data for only one gene.')
+    }else{
+      dat_phase = phasing(dat=dat, phased=phased, n_condition="one")
+      dat_phase$MAF=dat_phase$major/dat_phase$total
+      dat_phase$id = as.character(dat_phase$id)
+      dat_phase = subset(dat_phase, select=c('id','snp','gene','total','MAF'))
+      dat_phase$MAF = as.numeric(as.character(dat_phase$MAF))
+      dat_sort=aggregate(MAF ~ id ,data=dat_phase, median)
+      dat_sort=dat_sort[order(dat_sort$MAF),]
+      id_order=as.character(dat_sort$id)
+      g = ggplot(data=dat_phase,aes(y = MAF, x = id)) + 
+        geom_boxplot(aes(y = MAF, x = id, group=id)) +
+          geom_point(data=dat_phase,aes(y = MAF, x = id, color=snp))+theme_classic()+
+          geom_hline(yintercept = 0.5, linetype = "dashed",color='gray',size=1)+
+          theme(plot.title = element_text(color="black", size=16, hjust=0.5),
+                    axis.text.x = element_text(hjust = 0.5,size=12,angle=90,face="bold"),
+                    axis.title.x = element_text(hjust = 0.5,size=14,face="bold"),
+                    axis.text.y = element_text(size=12,face="bold"),
+                    axis.title.y = element_text(size=14,face="bold"),
+                    legend.title=element_text(size=14),
+                    legend.text=element_text(size=12),
+                    legend.position='right')+xlab('ID')+
+           ylab('ASE')+scale_x_discrete(limits=id_order)+labs(colour="SNP")+
+              ggtitle(unique(dat$gene))
+            print(g)
+    }
+  }else{
+    stop('Error: Data must contain column: "gene".')
+  }
 }
 
 #' @title Boxplot of the estimated SNP-level ASE difference between two conditions

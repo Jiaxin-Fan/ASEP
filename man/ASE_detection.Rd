@@ -4,9 +4,15 @@
 \alias{ASE_detection}
 \title{Perform gene-level ASE analysis in the population across genes}
 \usage{
-ASE_detection(dat_all, phased = FALSE, adaptive = TRUE,
-  n_resample = 10^6, parallel = FALSE, n_core = 1,
-  save_out = FALSE, name_out = NULL)
+ASE_detection(
+  dat_all,
+  phased = FALSE,
+  adaptive = TRUE,
+  n_resample = 10^6,
+  parallel = FALSE,
+  save_out = FALSE,
+  name_out = NULL
+)
 }
 \arguments{
 \item{dat_all:}{bulk RNA-seq data. Must contain variables: \cr
@@ -28,8 +34,6 @@ The procedure continuous until reaches the maximum number of resampling.}
 
 \item{parallel:}{a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE}
 
-\item{n_core:}{a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1}
-
 \item{save_out:}{a logical value indicates whether to write out the result for each gene stepwisely to a txt file. Default is FALSE}
 
 \item{name_out:}{a character string indicates the output file name when save_out is set to TRUE, with the format of "XXX.txt"}
@@ -38,8 +42,7 @@ The procedure continuous until reaches the maximum number of resampling.}
 A matrix with three columns:
       \itemize{
          \item `gene`: character, gene name;
-         \item `test statistic`: numeric, the test statistics of ASE effect;
-         \item `p-value`: the estimated p-value of the test statistic;
+         \item `p-value`: the estimated p-value of the  likelihood ratio test (LRT) statistic;
       }
 }
 \description{

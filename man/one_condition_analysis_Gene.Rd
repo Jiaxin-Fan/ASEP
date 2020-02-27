@@ -4,8 +4,13 @@
 \alias{one_condition_analysis_Gene}
 \title{Perform ASE analysis in the population for a given gene}
 \usage{
-one_condition_analysis_Gene(dat, phased = FALSE, n_resample = 10^6,
-  adaptive = TRUE, parallel = FALSE, n_core = 1)
+one_condition_analysis_Gene(
+  dat,
+  phased = FALSE,
+  n_resample = 10^6,
+  adaptive = TRUE,
+  parallel = FALSE
+)
 }
 \arguments{
 \item{dat:}{bulk RNA-seq data of a given gene. Must contain variables:
@@ -25,14 +30,12 @@ if then the estimated p-value < 0.01, increase the number of resampling again, b
 The procedure continuous until reaches the maximum number of resampling. \cr}
 
 \item{parallel:}{a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE}
-
-\item{n_core:}{a numeric value indicates number of clusters used for the parallel computing. Used only when parallel is set to TRUE. Default is 1}
 }
 \value{
 A vector with two elements:
       \itemize{
-         \item `test statistic`: numeric, the test statistics of ASE effect;
-         \item `p-value`: the estimated p-value of the test statistic;
+         \item `LRT statistic`: numeric, the likelihood ratio test (LRT) statistics of ASE effect;
+         \item `p-value`: the estimated p-value of the LRT statistic;
       }
 }
 \description{

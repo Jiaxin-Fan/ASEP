@@ -6,12 +6,14 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Fit generalized linear mixed-effect model — modelFit • ASEP</title>
+<title>Model Fitting — modelFit • ASEP</title>
+
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/cerulean/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
@@ -32,10 +34,11 @@
 
 
 
-<meta property="og:title" content="Fit generalized linear mixed-effect model — modelFit" />
 
+<meta property="og:title" content="Model Fitting — modelFit" />
 <meta property="og:description" content="This function is used to fit the generalized linear mixed-effect model through nonparametric maximum likelihood estimation for a given gene." />
 <meta name="twitter:card" content="summary" />
+
 
 
 
@@ -79,7 +82,6 @@
   <a href="../reference/index.html">Documentation</a>
 </li>
       </ul>
-      
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/Jiaxin-Fan/ASEP">
@@ -100,19 +102,17 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Fit generalized linear mixed-effect model</h1>
+    <h1>Model Fitting</h1>
     
     <div class="hidden name"><code>modelFit.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    
     <p>This function is used to fit the generalized linear mixed-effect model through nonparametric maximum likelihood estimation for a given gene.</p>
-    
     </div>
 
     <pre class="usage"><span class='fu'>modelFit</span>(<span class='no'>dat_phase</span>, <span class='kw'>n_condition</span> <span class='kw'>=</span> <span class='st'>"one"</span>, <span class='kw'>resampled_data</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
-    
+
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
@@ -126,28 +126,28 @@
     </tr>
     <tr>
       <th>resampled_data:</th>
-      <td><p>a logical value indicates whether the data analyzed is obtained from resampling or not. Used for two conditions analysis only. Default is FALSE</p></td>
+      <td><p>a logical value indicates whether the data analyzed is obtained from resampling or not. Used only for two conditions analysis. Default is FALSE</p></td>
     </tr>
     </table>
-    
+
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>One of: <br /></p><ul>
-<li><p>the test statistic for ASE detection - when modeling the original/resampled data under one condition analysis;</p></li>
-<li><p>the test statistic for differential ASE detection - when modeling the resampled data under two conditions analysis;</p></li>
-<li><p>the test statistic for differential ASE detection &amp; the estimated ASE effect in the pooled sample - when modeling the original data under two conditions analysis;</p></li>
+    
+<ul>
+<li><p>One condition analysis: likelihood ratio test (LRT) statistic;<br /></p></li>
+<li><p>Two conditions analysis: <br />
+                 - original data: estimated ASE effect in the pooled sample &amp; likelihood ratio test (LRT) statistic; <br />
+                 - resampled data: likelihood ratio test (LRT) statistic;<br /></p></li>
 </ul>
 
-    
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-      
       <li><a href="#value">Value</a></li>
-          </ul>
+    </ul>
 
   </div>
 </div>

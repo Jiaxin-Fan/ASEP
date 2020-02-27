@@ -8,10 +8,12 @@
 
 <title>Boxplot of the estimated SNP-level ASE difference between two conditions — plot_ASE_diff • ASEP</title>
 
+
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/cerulean/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
@@ -32,12 +34,13 @@
 
 
 
-<meta property="og:title" content="Boxplot of the estimated SNP-level ASE difference between two conditions — plot_ASE_diff" />
 
+<meta property="og:title" content="Boxplot of the estimated SNP-level ASE difference between two conditions — plot_ASE_diff" />
 <meta property="og:description" content="This function is used to showed the estimated SNP-level ASE difference, i.e. major allele proportion difference,
 between two condition samples across all individuals and SNPs after haplotype phasing.
 The individuals are aligned based on an increasing trend of their median ASE differences across all snps for a given gene." />
 <meta name="twitter:card" content="summary" />
+
 
 
 
@@ -81,7 +84,6 @@ The individuals are aligned based on an increasing trend of their median ASE dif
   <a href="../reference/index.html">Documentation</a>
 </li>
       </ul>
-      
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/Jiaxin-Fan/ASEP">
@@ -108,15 +110,13 @@ The individuals are aligned based on an increasing trend of their median ASE dif
     </div>
 
     <div class="ref-description">
-    
     <p>This function is used to showed the estimated SNP-level ASE difference, i.e. major allele proportion difference,
 between two condition samples across all individuals and SNPs after haplotype phasing.
 The individuals are aligned based on an increasing trend of their median ASE differences across all snps for a given gene.</p>
-    
     </div>
 
     <pre class="usage"><span class='fu'>plot_ASE_diff</span>(<span class='no'>dat</span>, <span class='kw'>phased</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>minu_ref</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
-    
+
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
@@ -141,20 +141,18 @@ The individuals are aligned based on an increasing trend of their median ASE dif
       <td><p>a logical value indicates when calculating the difference, whether the "ref_condition" should be treated as the minuend, i.e. the difference is calculated as estimated ASE for minuend_condition minus that for the other condition. Default is TRUE</p></td>
     </tr>
     </table>
-    
+
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
     <p>The boxplot (ggplot2::geom_boxplot) of the estimated SNP-level ASE difference between two conditions across individuals</p>
-    
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-      
       <li><a href="#value">Value</a></li>
-          </ul>
+    </ul>
 
   </div>
 </div>

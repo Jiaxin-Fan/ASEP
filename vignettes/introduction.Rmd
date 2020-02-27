@@ -74,7 +74,7 @@ Figure 2 illustrates how the input data should look like for two conditions anal
 
 <figure>
 <p align="center"> 
-<img src="https://github.com/Jiaxin-Fan/ASEP/raw/master/vignettes/data_twocondition.png" width="1000">
+<img src="https://github.com/Jiaxin-Fan/ASEP/raw/master/vignettes/data_twocondition.png" width="800">
 <figcaption> Figure 2: Input data for two conditions analysis </figcaption>
 </p>
 </figure>
@@ -82,13 +82,12 @@ Figure 2 illustrates how the input data should look like for two conditions anal
 # Tutorial
 ___________________
 
-This vignette uses the data of an example gene, RAC2, obtained from a paired macrophage RNA-seq dataset (M0 macrophages vs. M1 macrophages) generated from 48 healthy individuals, to illustrate, step by step, how to use ASEP for ASE and differential ASE detection when haplotype phase is unknown. For phase known, the procedure is identical except that the input parameter `phased` for each function should set to be `TRUE`. 
+This vignette uses the data of an example gene, PIEZO1, obtained from a paired macrophage RNA-seq dataset (M0 macrophages vs. M1 macrophages) generated from 48 healthy individuals, to illustrate, step by step, how to use ASEP for ASE and differential ASE detection when haplotype phase is unknown. For phase known, the procedure is identical except that the input parameter `phased` for each function should set to be `TRUE`. 
 
 ```{r real_data_example, echo=FALSE}
 dat = read.table("real_data_example.txt", header=T)
 dat = dat[order(dat$id,dat$snp,dat$group),]
 dat = dat[,c("gene","id","group","snp","ref","total")]
-rownames(dat) = NULL
 
 dat_M0 = dat[dat$group=='M0',]
 dat_M0 = dat_M0[,c("gene","id","snp","ref","total","group")]
@@ -109,26 +108,25 @@ In order to detect gene-level ASE effect in the population, the first step is to
 * `adaptive`: logical, indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE;
   + By adaptive, it means we first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4. If then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5. The procedure continuous until reaches the maximum number of resampling.
 * `parallel`: logical, indicates whether do parallel computing for the resampling or not. Default is `FALSE`;
-* `n_core`: numeric, number of clusters used for the parallel computing. Used only when `parallel` is set to `TRUE`. Default is 1;
 * `save_out`: logical, indicates whether to write out the result for each gene stepwisely to a txt file or not. Default is `FALSE`;
 * `name_out`: character, the output txt file name when `save_out` is set to `TRUE`, with the format of "XXX.txt".
 
-The tables below show the input RNA-seq data of gene "RCA2" under each condition (Left: M0 macrophages; Right: M1 macrophages).
+The tables below show the input RNA-seq data of gene PIEZO1 under each condition (Left: M0 macrophages; Right: M1 macrophages).
     
 <style>
 .column-left{
   float: left;
-  width: 49%;
+  width: 48%;
   text-align: left;
 }
 .column-center{
   display: inline-block;
-  width: 2%;
+  width: 4%;
   text-align: center;
 }
 .column-right{
   float: right;
-  width: 49%;
+  width: 48%;
   text-align: right;
 }
 </style>
@@ -136,29 +134,26 @@ The tables below show the input RNA-seq data of gene "RCA2" under each condition
 <div class="column-left">
 ```{r, echo=FALSE}
 datatable(dat_M0, class = 'cell-border stripe', rownames = FALSE, 
-          options = list(pageLength = 5, fixedColumns = T, columnDefs = list(list(className = 'dt-center', targets = 0:5))))
+          options = list(pageLength = 5, fixedColumns = T, dom='rtp', pagingType = "numbers",
+                         columnDefs = list(list(className = 'dt-center', targets = 0:5))))
 ``` 
 </div>
 
-<div class="column-center">
-```{r, echo=FALSE}
-
-```
+<div class="column-center" style="margin-bottom:280px;">
 </div>
 
 <div class="column-right">
 ```{r, echo=FALSE}
 datatable(dat_M1,  class = 'cell-border stripe', rownames = FALSE, 
-          options = list(pageLength = 5, fixedColumns = T, columnDefs = list(list(className = 'dt-center', targets = 0:5))))
+          options = list(pageLength = 5, fixedColumns = T, dom='rtp', pagingType = "numbers",
+                         columnDefs = list(list(className = 'dt-center', targets = 0:5))))
 ``` 
 </div>
 
-
-The outputs of `ASE_detection` is a matrix with 3 columns:
+The outputs of `ASE_detection` is a matrix with 2 columns:
 
 * `gene`: character, gene name;
-* `test statistic`: numeric, value of test statistic for ASE detection. Can be viewed as an estimate of the ASE level. The larger the test statistic, the greater possible ASE effect;
-* `p-value`: numeric, corresponding p-value of the test statistic.
+* `p-value`: numeric, p-value of the likelihood ratio test (LRT) statistic for ASE detection.
 
 We performed ASE detection on both M0 and M1 macrophages samples. We use the function `ASE_detection` to get the estimated ASE effect and its estimated p-value under each condition. For presentation purpose and to save running time, we decrease the number of resampling to $10^3$, and perform the analysis without parallel computing.
 
@@ -189,26 +184,36 @@ dat_M1_phased = phasing(dat_M1, phased=FALSE, n_condition="one")
 <div class="column-left">
 ```{r, echo=FALSE}
 datatable(dat_M0_phased, class = 'cell-border stripe', rownames = FALSE, 
-          options = list(pageLength = 5, fixedColumns = T, columnDefs = list(list(className = 'dt-center', targets = 0:6))))
+          options = list(pageLength = 5, fixedColumns = T,  dom='rtp', pagingType = "numbers",
+                         scrollX = T, columnDefs = list(list(className = 'dt-center', targets = 0:6))))
 ``` 
 </div>
 
-<div class="column-center">
-```{r, echo=FALSE}
-
-```
+<div class="column-center" style="margin-bottom:280px;">
 </div>
 
 <div class="column-right">
 ```{r, echo=FALSE}
 datatable(dat_M1_phased, class = 'cell-border stripe', rownames = FALSE, 
-          options = list(pageLength = 5, fixedColumns = T, columnDefs = list(list(className = 'dt-center', targets = 0:6))))
+          options = list(pageLength = 5, fixedColumns = T, dom='rtp', pagingType = 'numbers',
+                         scrollX = T, columnDefs = list(list(className = 'dt-center', targets = 0:6))))
 ``` 
 </div>
 
+In addition, we provide function `plot_ASE` to show the estimated SNP-level ASE, i.e. major allele proportion, for each individual using boxplot. The individuals are sorted by their median of estimated ASE among heterozygous SNPs. The essential inputs for `plot_ASE` are:
+
+* `dat`: RNA-seq data of a given gene. 
+* `phased`: logical, indicates whether the haplotype phase is known or not. Default is `FALSE`;
+
+The boxplot below shows the the estimated SNP-level ASE for M1 macrophages across subjects.
+
+```{r plot0, fig.align='center', fig.width=8, fig.height=3}
+plot_ASE(dat_M1, phased=FALSE)
+```
+
 ## Two Conditions Analysis
 
-Similar as one condition analysis, the first step for detecting gene-level differential ASE is to align the major alleles across *tSNP*s and individuals for both conditions. To ensure that major alelles are identical for the same individual under different conditions, we choose one condition as the "reference" (`ref_condition`), obtain its phasing information, and phase the data from the other condition accordingly. Since gene "RAC2" only showed ASE effect under M1 macrophages, we chose 'M1' as the `ref_condition`. The table below shows the input RNA-seq data for two conditions analysis.
+Similar as one condition analysis, the first step for detecting gene-level differential ASE is to align the major alleles across *tSNP*s and individuals for both conditions. To ensure that major alelles are identical for the same individual under different conditions, we choose one condition as the "reference" (`ref_condition`), obtain its phasing information, and phase the data from the other condition accordingly. Since gene PIEZO1 only showed ASE effect under M1 macrophages, we chose 'M1' as the `ref_condition`. The table below shows the input RNA-seq data for two conditions analysis.
 
 <style>
 .centers{
@@ -226,9 +231,9 @@ datatable(dat, class = 'cell-border stripe', rownames = FALSE,
 ```
 </div>
 
-Next, a generalized linear mixed-effects model is also employed for differential ASE detection and the estimated p-value is obtained through resampling. The whole procedure of pseudo alignement and model fitting is taken care of by the function `differential_ASE_detection`. The essential inputs and outputs of `differential_ASE_detection` are the same as `ASE_detection`, except that the test statistic now indicates the level of differential ASE effect. 
+Next, a generalized linear mixed-effects model is also employed for differential ASE detection and the estimated p-value is obtained through resampling. The whole procedure of pseudo alignement and model fitting is taken care of by the function `differential_ASE_detection`. The essential inputs and outputs of `differential_ASE_detection` are the same as `ASE_detection`. 
 
-Below, we performed differential ASE detection on the example gene "RAC2". For presentation purpose and to save running time, we decrease the number of resampling to $10^3$, and perform the analysis without parallel computing.
+Below, we performed differential ASE detection on the example gene PIEZO1. For presentation purpose and to save running time, we decrease the number of resampling to $10^3$, and perform the analysis without parallel computing.
 
 ```{r two_condition_analysis}
 differential_ASE_detection(dat, phased=FALSE, adaptive=TRUE, n_resample=10^3, parallel=FALSE, save_out=FALSE)

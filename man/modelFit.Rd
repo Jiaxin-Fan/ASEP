@@ -2,7 +2,7 @@
 % Please edit documentation in R/ASEP functions.R
 \name{modelFit}
 \alias{modelFit}
-\title{Fit generalized linear mixed-effect model}
+\title{Model Fitting}
 \usage{
 modelFit(dat_phase, n_condition = "one", resampled_data = FALSE)
 }
@@ -11,14 +11,14 @@ modelFit(dat_phase, n_condition = "one", resampled_data = FALSE)
 
 \item{n_condition:}{a character string indicates whether to perform one condition analysis or two conditions analysis. Possible values are "one" or "two". Default is "one"}
 
-\item{resampled_data:}{a logical value indicates whether the data analyzed is obtained from resampling or not. Used for two conditions analysis only. Default is FALSE}
+\item{resampled_data:}{a logical value indicates whether the data analyzed is obtained from resampling or not. Used only for two conditions analysis. Default is FALSE}
 }
 \value{
-One of: \cr
-   \itemize{
-       \item the test statistic for ASE detection - when modeling the original/resampled data under one condition analysis;
-       \item the test statistic for differential ASE detection - when modeling the resampled data under two conditions analysis;
-       \item the test statistic for differential ASE detection & the estimated ASE effect in the pooled sample - when modeling the original data under two conditions analysis;
+\itemize{
+               \item One condition analysis: likelihood ratio test (LRT) statistic;\cr
+               \item Two conditions analysis: \cr
+                 - original data: estimated ASE effect in the pooled sample & likelihood ratio test (LRT) statistic; \cr
+                 - resampled data: likelihood ratio test (LRT) statistic;\cr
    }
 }
 \description{
