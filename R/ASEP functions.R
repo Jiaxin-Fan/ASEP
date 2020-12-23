@@ -98,6 +98,7 @@ phasing<-function(dat, phased=FALSE, n_condition="one"){
 #' @param dat_phase: Psudo-phased bulk RNA-seq data of a given gene
 #' @param n_condition: a character string indicates whether to perform one condition analysis or two conditions analysis. Possible values are "one" or "two". Default is "one"
 #' @param resampled_data: a logical value indicates whether the data analyzed is obtained from resampling or not. Used only for two conditions analysis. Default is FALSE
+#' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model, e.g., "`var1`+`var2`". Default is NULL
 #' @return
 #'    \itemize{
 #'                \item One condition analysis: likelihood ratio test (LRT) statistic;\cr
@@ -108,15 +109,24 @@ phasing<-function(dat, phased=FALSE, n_condition="one"){
 #' @export
 #' @import npmlreg lme4
 
-modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
+modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=NULL){
   lrt<-NA
   if (n_condition == "one"){
-    np = allvc(cbind(major,(total-major))~1,random=~1|id,
-                       family=binomial(link=logit), data=dat_phase, k=2,
-                       random.distribution='np',plot.opt = 0, verbose = FALSE)
-    mod = suppressMessages({glmer(cbind(major,(total-major)) ~ (1|id),
-                            family=binomial(link=logit), data=dat_phase)})
-
+    if(is.null(varList)){
+      np = allvc(cbind(major,(total-major))~1,random=~1|id,
+                 family=binomial(link=logit), data=dat_phase, k=2,
+                 random.distribution='np',plot.opt = 0, verbose = FALSE)
+      mod = suppressMessages({glmer(cbind(major,(total-major)) ~ (1|id),
+                                    family=binomial(link=logit), data=dat_phase)})
+    }
+    if(!is.null(varList)){
+      fom1 = as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
+      fom2 = as.formula(paste('cbind(major,(total-major))~ (1|id) +',varList,sep=''))
+      np = allvc(fom1,random=~1|id,
+                 family=binomial(link=logit), data=dat_phase, k=2,
+                 random.distribution='np',plot.opt = 0, verbose = FALSE)
+      mod = suppressMessages({glmer(fom2,family=binomial(link=logit), data=dat_phase)})
+    }
     # check model convergence
     if(np$EMconverged & summary(mod)$optinfo$conv$opt==0){
         logl1 = np$disparity
@@ -126,12 +136,23 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
     return(lrt)
   }
   else if (n_condition == "two"){
-    np = allvc(cbind(major,(total-major))~1,random=~group|id,
-                       family=binomial(link=logit),data=dat_phase, k=2,
-                       random.distribution='np', plot.opt = 0, verbose = FALSE)
-    mod = allvc(cbind(major,(total-major))~1,random=~1|id,
-                          family=binomial(link=logit), data=dat_phase, k=2,
-                          random.distribution='np',plot.opt = 0, verbose = FALSE)
+    if(is.null(varList)){
+      np = allvc(cbind(major,(total-major))~1,random=~group|id,
+                 family=binomial(link=logit),data=dat_phase, k=2,
+                 random.distribution='np', plot.opt = 0, verbose = FALSE)
+      mod = allvc(cbind(major,(total-major))~1,random=~1|id,
+                  family=binomial(link=logit), data=dat_phase, k=2,
+                  random.distribution='np',plot.opt = 0, verbose = FALSE)
+    }
+    if(!is.null(varList)){
+      fom1 = as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
+      np = allvc(fom1,random=~group|id,
+                 family=binomial(link=logit),data=dat_phase, k=2,
+                 random.distribution='np', plot.opt = 0, verbose = FALSE)
+      mod = allvc(fom1,random=~1|id,
+                  family=binomial(link=logit), data=dat_phase, k=2,
+                  random.distribution='np',plot.opt = 0, verbose = FALSE)
+    }
     # check model convergence
     if(np$EMconverged & mod$EMconverged){
         logl1 = np$disparity
@@ -180,12 +201,14 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
 #'                  \item `total`: numeric, snp-level total read counts for both alleles;
 #'             }
 #' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
+#' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
+#' @param n_core: a numeric value indicates number of clusters used for parallel computing when parameter "parallel" is set to TRUE. Default is 1
 #' @return A vector with two elements:
 #'       \itemize{
 #'          \item `LRT statistic`: numeric, the likelihood ratio test (LRT) statistics of ASE effect;
@@ -193,7 +216,7 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE){
 #'       }
 #' @import parallel
 
-one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adaptive=TRUE, parallel=FALSE){
+one_condition_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, n_resample=10^6, adaptive=TRUE, parallel=FALSE, n_core=1){
   # check data
   dat=as.data.frame(dat)
   if (!(all(c("id","ref","total") %in% colnames(dat)))){
@@ -202,94 +225,164 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
   # analysis
   dat_phase<-phasing(dat=dat, phased=phased, n_condition="one")
   dat_phase$total = as.numeric(as.character(dat_phase$total))
-  lrt = modelFit(dat_phase=dat_phase, n_condition="one")
+  lrt = modelFit(dat_phase=dat_phase, n_condition="one", varList=varList)
   if(is.na(lrt)){
     pvalue=NA
   }else{
-    if(!parallel){
-      if(!adaptive){
-        xgene <- sapply(dat_phase$total,function(x){rbinom(n=n_resample,size=x,prob=0.5)})
-        testnull <- apply(xgene,1,function(x){
-          ref<-x
-          dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
-          dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
-          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
-          return(lrtn)
-        })
-        testnulldist<-na.omit(testnull)
-        pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
-      }else{
+    if((!parallel) & (!adaptive)){
+        # separate all resamplings to subtasks to avoid memory outage
+        if(n_resample>5*10^4){
+          t = n_resample %/% (5*10^4)
+          r = n_resample %% (5*10^4)
+          if(r == 0){
+            simulationList = c(rep(5*10^4, times=t))
+          }else{
+            simulationList = c(rep(5*10^4, times=t), r)
+          }
+        }else{
+          simulationList = n_resample
+        }
+        n_sig = 0
+        n_total = 0
+        for(simulation in simulationList){
+          xgene <- sapply(dat_phase$total,function(x){rbinom(n=simulation,size=x,prob=0.5)})
+          testnull <- apply(xgene,1,function(x){
+            ref<-x
+            dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
+            dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
+            lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one", varList=varList)
+            return(lrtn)
+          })
+          testnull<-na.omit(testnull)
+          n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+          n_total = n_total + length(testnull)
+          gc()
+        }
+        pvalue<- n_sig/n_total
+    }
+
+    if((!parallel) & adaptive){
         n_1 = log(n_resample,base=10)
         n_2 = floor(n_1)
-        if(n_1==n_2){
-          simulationList = c(10^3, diff(10^(3:n_2)))
+        if(n_resample>5*10^4){
+          t = (n_resample-10^4) %/% (5*10^4)
+          r = (n_resample-10^4) %% (5*10^4)
+          if(r == 0){
+            simulationList = c(10^3, 9*10^3, rep(5*10^4,t))
+          }else{
+            simulationList = c(10^3, 9*10^3, rep(5*10^4,t),r)
+          }
         }else{
-          simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
+          if(n_1==n_2){
+            simulationList = c(10^3, diff(10^(3:n_2)))
+          }else{
+            simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
+          }
         }
-        pvalueList <- c(0.1^(1:(length(simulationList)-1)), 0.1^(length(simulationList)-1))[1:length(simulationList)]
-        testnulldist = NULL
+        n_sig = 0
+        n_total = 0
         for(i in 1:length(simulationList)){
+          n_resample_total = sum(simulationList[1:i])
           simulation <- simulationList[i]
           xgene<-sapply(dat_phase$total,function(x){rbinom(n=simulation,size=x,prob=0.5)})
           testnull<-apply(xgene,1,function(x){
             ref<-x
             dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
             dat_resam_phase<-phasing(dat=dat_resam, phased=phased, n_condition="one")
-            lrtn = modelFit(dat_phase=dat_resam_phase, n_condition="one")
+            lrtn = modelFit(dat_phase=dat_resam_phase, n_condition="one", varList=varList)
             return(lrtn)
           })
-          testnulldist<-c(testnulldist, na.omit(testnull))
-          pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
-          pvaluecutoff <- pvalueList[i]
+          testnull <- na.omit(testnull)
+          n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+          n_total = n_total + length(testnull)
+          pvalue<- n_sig/n_total
+          pvaluecutoff <- 100/n_resample_total
           if(pvaluecutoff <= pvalue){
             break
           }
+          gc()
         }
-      }
-    }else{
-      n_core = detectCores()
+    }
+
+    if(parallel & (!adaptive)){
       clus=makeCluster(n_core)
-      if(!adaptive){
-        xgene <- sapply(dat_phase$total,function(x){rbinom(n=n_resample,size=x,prob=0.5)})
-        clusterExport(clus,list('dat_phase','phasing','modelFit'), envir=environment())
-        testnull<-parRapply(clus,xgene,function(x){
-          ref<-x
-          dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
-          dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
-          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
-          return(lrtn)
-        })
-        testnulldist<-na.omit(testnull)
-        pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
+      # separate all resamplings to subtasks to avoid memory outage
+      if(n_resample>10^5){
+          t = n_resample %/% (10^5)
+          r = n_resample %% (10^5)
+          if(r == 0){
+            simulationList = c(rep(10^5, times=t))
+          }else{
+            simulationList = c(rep(10^5, times=t), r)
+          }
       }else{
-        n_1 = log(n_resample,base=10)
-        n_2 = floor(n_1)
-        if(n_1==n_2){
-          simulationList = c(10^3, diff(10^(3:n_2)))
-        }else{
-          simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
-        }
-        pvalueList <- c(0.1^(1:(length(simulationList)-1)), 0.1^(length(simulationList)-1))
-        testnulldist = NULL
-        for(i in 1:length(simulationList)){
-          simulation <- simulationList[i]
-          xgene<-sapply(dat_phase$total,function(x){rbinom(n=simulation,size=x,prob=0.5)})
-          clusterExport(clus,list('dat_phase','phasing','modelFit'), envir=environment())
+          simulationList = n_resample
+      }
+      n_sig = 0
+      n_total = 0
+      for(simulation in simulationList){
+          xgene <- sapply(dat_phase$total,function(x){rbinom(n=simulation,size=x,prob=0.5)})
+          clusterExport(clus,list('dat_phase','phasing','modelFit','varList'), envir=environment())
           testnull<-parRapply(clus,xgene,function(x){
             ref<-x
             dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
             dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
-            lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one")
+            lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one",varList=varList)
             return(lrtn)
           })
-          testnulldist<-c(testnulldist, na.omit(testnull))
-          pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
-          pvaluecutoff <- pvalueList[i]
+          testnull<-na.omit(testnull)
+          n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+          n_total = n_total + length(testnull)
+          gc()
+        }
+        pvalue<- n_sig/n_total
+        stopCluster(clus)
+    }
+
+    if(parallel & adaptive){
+      clus=makeCluster(n_core)
+      n_1 = log(n_resample,base=10)
+      n_2 = floor(n_1)
+      if(n_resample>10^5){
+          t = (n_resample-10^5) %/% (10^5)
+          r = (n_resample-10^5) %% (10^5)
+          if(r == 0){
+            simulationList = c(10^3, 9*10^3, 9*10^4, rep(10^5,t))
+          }else{
+            simulationList = c(10^3, 9*10^3, 9*10^4, rep(10^5,t),r)
+          }
+        }else{
+          if(n_1==n_2){
+            simulationList = c(10^3, diff(10^(3:n_2)))
+          }else{
+            simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
+          }
+      }
+      n_sig = 0
+      n_total = 0
+      for(i in 1:length(simulationList)){
+          n_resample_total = sum(simulationList[1:i])
+          simulation <- simulationList[i]
+          xgene<-sapply(dat_phase$total,function(x){rbinom(n=simulation,size=x,prob=0.5)})
+          clusterExport(clus,list('dat_phase','phasing','modelFit','varList'), envir=environment())
+          testnull<-parRapply(clus,xgene,function(x){
+            ref<-x
+            dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
+            dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="one")
+            lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="one", varList=varList)
+            return(lrtn)
+          })
+          testnull<-na.omit(testnull)
+          n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+          n_total = n_total + length(testnull)
+          pvalue<- n_sig/n_total
+          pvaluecutoff <- 100/n_resample_total
           if(pvaluecutoff <= pvalue){
             break
           }
-        }
+          gc()
       }
+      stopCluster(clus)
     }
   }
   return(c("LRT statistic" = lrt, "p-value" = pvalue))
@@ -308,12 +401,14 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
 #'           \item `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing;
 #'       }
 #' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
+#' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
+#' @param n_core: a numeric value indicates number of clusters used for parallel computing when parameter "parallel" is set to TRUE. Default is 1
 #' @return A vector with two elements:
 #'       \itemize{
 #'          \item `LRT statistic`: numeric, the likelihood ratio test (LRT) statistics of differential ASE effect;
@@ -321,7 +416,7 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, n_resample=10^6, adap
 #'       }
 #' @import parallel
 
-two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE){
+two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adaptive=TRUE, n_resample=10^6, parallel=FALSE, n_core=1){
   # check data
   dat=as.data.frame(dat)
   if (all(c("ref","total","id","group","snp","ref_condition") %in% colnames(dat))){
@@ -345,7 +440,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
   }
   # analysis
   dat_phase<-phasing(dat=dat, phased=phased, n_condition="two")
-  mod = modelFit(dat_phase=dat_phase, n_condition="two", resampled_data=FALSE)
+  mod = modelFit(dat_phase=dat_phase, n_condition="two", resampled_data=FALSE, varList = varList)
   # model not converge
   if(length(mod)==1){
     lrt = mod
@@ -358,92 +453,157 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
     gen<-cbind(dat_allpoolp$total,dat_allpoolp$poolp)
 
     if((!parallel) & (!adaptive)){
-      xgene<-apply(gen,1,function(x){rbinom(n_resample,x[1],x[2])})
-      testnull <- apply(xgene,1,function(x){
-        ref<-x
-        dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
-        dat_resam_phase<-phasing(dat=dat_resam, phased=phased, n_condition="two")
-        lrtn = modelFit(dat_phase=dat_resam_phase, n_condition="two", resampled_data=TRUE)
-        return(lrtn)
-      })
-      testnulldist<-na.omit(testnull)
-      pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
+      # separate all resamplings to subtasks to avoid memory outage
+      if(n_resample>5*10^4){
+        t = n_resample %/% (5*10^4)
+        r = n_resample %% (5*10^4)
+        if(r == 0){
+          simulationList = c(rep(5*10^4, times=t))
+        }else{
+          simulationList = c(rep(5*10^4, times=t), r)
+        }
+      }else{
+        simulationList = n_resample
+      }
+      n_sig = 0
+      n_total = 0
+      for(simulation in simulationList){
+        xgene<-apply(gen,1,function(x){rbinom(simulation,x[1],x[2])})
+        testnull <- apply(xgene,1,function(x){
+          ref<-x
+          dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
+          dat_resam_phase<-phasing(dat=dat_resam, phased=phased, n_condition="two")
+          lrtn = modelFit(dat_phase=dat_resam_phase, n_condition="two", resampled_data=TRUE, varList=varList)
+          return(lrtn)
+        })
+        testnull<-na.omit(testnull)
+        n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+        n_total = n_total + length(testnull)
+        gc()
+      }
+      pvalue<- n_sig/n_total
     }
 
     if(!parallel & adaptive){
       n_1 = log(n_resample,base=10)
       n_2 = floor(n_1)
-      if(n_1==n_2){
-        simulationList = c(10^3, diff(10^(3:n_2)))
+      if(n_resample>5*10^4){
+        t = (n_resample-10^4) %/% (5*10^4)
+        r = (n_resample-10^4) %% (5*10^4)
+        if(r == 0){
+          simulationList = c(10^3, 9*10^3, rep(5*10^4,t))
+        }else{
+          simulationList = c(10^3, 9*10^3, rep(5*10^4,t),r)
+        }
       }else{
-        simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
+        if(n_1==n_2){
+          simulationList = c(10^3, diff(10^(3:n_2)))
+        }else{
+          simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
+        }
       }
-      pvalueList <- c(0.1^(1:(length(simulationList)-1)), 0.1^(length(simulationList)-1))
-      testnulldist = NULL
+      n_sig = 0
+      n_total = 0
       for(i in 1:length(simulationList)){
+        n_resample_total = sum(simulationList[1:i])
         simulation <- simulationList[i]
         xgene<-apply(gen,1,function(x){rbinom(simulation,x[1],x[2])})
         testnull<-apply(xgene,1,function(x){
           ref<-x
           dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
           dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="two")
-          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
+          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE,varList=varList)
           return(lrtn)
         })
-        testnulldist<-c(testnulldist, na.omit(testnull))
-        pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
-        pvaluecutoff <- pvalueList[i]
+        testnull<-na.omit(testnull)
+        n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+        n_total = n_total + length(testnull)
+        pvalue<- n_sig/n_total
+        pvaluecutoff <- 100/n_resample_total
         if(pvaluecutoff <= pvalue){
           break
         }
+        gc()
       }
     }
 
     if (parallel & !adaptive){
-      n_core = detectCores()
       clus=makeCluster(n_core)
-      xgene<-apply(gen,1,function(x){rbinom(n_resample,x[1],x[2])})
-      clusterExport(clus,list('dat_allpoolp','phasing','modelFit'), envir=environment())
-      testnull<-parRapply(clus,xgene,function(x){
-        ref<-x
-        dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
-        dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="two")
-        lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
-        return(lrtn)
-      })
-      testnulldist<-na.omit(testnull)
-      pvalue<-sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
+      # separate all resamplings to subtasks to avoid memory outage
+      if(n_resample>10^5){
+        t = n_resample %/% (10^5)
+        r = n_resample %% (10^5)
+        if(r == 0){
+          simulationList = c(rep(10^5, times=t))
+        }else{
+          simulationList = c(rep(10^5, times=t), r)
+        }
+      }else{
+        simulationList = n_resample
+      }
+      n_sig = 0
+      n_total = 0
+      for(simulation in simulationList){
+        xgene<-apply(gen,1,function(x){rbinom(simulation,x[1],x[2])})
+        clusterExport(clus,list('dat_allpoolp','phasing','modelFit','varList'), envir=environment())
+        testnull<-parRapply(clus,xgene,function(x){
+          ref<-x
+          dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
+          dat_resam_phase<-phasing(dat = dat_resam, phased=phased, n_condition="two")
+          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE, varList=varList)
+          return(lrtn)
+        })
+        testnull<-na.omit(testnull)
+        n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+        n_total = n_total + length(testnull)
+        gc()
+      }
+      pvalue<- n_sig/n_total
+      stopCluster(clus)
     }
 
     if(parallel & adaptive){
-      n_core = detectCores()
       clus=makeCluster(n_core)
       n_1 = log(n_resample,base=10)
       n_2 = floor(n_1)
-      if(n_1==n_2){
-        simulationList = c(10^3, diff(10^(3:n_2)))
+      if(n_resample>10^5){
+        t = (n_resample-10^5) %/% (10^5)
+        r = (n_resample-10^5) %% (10^5)
+        if(r == 0){
+          simulationList = c(10^3, 9*10^3, 9*10^4, rep(10^5,t))
+        }else{
+          simulationList = c(10^3, 9*10^3, 9*10^4, rep(10^5,t),r)
+        }
       }else{
-        simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
+        if(n_1==n_2){
+          simulationList = c(10^3, diff(10^(3:n_2)))
+        }else{
+          simulationList = c(10^3, diff(10^(3:n_2)), n_resample-10^n_2)
+        }
       }
-      pvalueList <- c(0.1^(1:(length(simulationList)-1)), 0.1^(length(simulationList)-1))
-      testnulldist = NULL
+      n_sig = 0
+      n_total = 0
       for(i in 1:length(simulationList)){
+        n_resample_total = sum(simulationList[1:i])
         simulation <- simulationList[i]
         xgene<-apply(gen,1,function(x){rbinom(simulation,x[1],x[2])})
-        clusterExport(clus,list('dat_allpoolp','phasing','modelFit'), envir=environment())
+        clusterExport(clus,list('dat_allpoolp','phasing','modelFit','varList'), envir=environment())
         testnull<-parRapply(clus,xgene,function(x){
           ref<-x
           dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
           dat_resam_phase<-phasing(dat=dat_resam, phased=phased, n_condition="two")
-          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE)
+          lrtn = modelFit(dat_phase = dat_resam_phase, n_condition="two", resampled_data=TRUE,varList=varList)
           return(lrtn)
         })
-        testnulldist<-c(testnulldist, na.omit(testnull))
-        pvalue=sum(ifelse(testnulldist>=lrt,1,0))/length(testnulldist)
-        pvaluecutoff <- pvalueList[i]
+        testnull<-na.omit(testnull)
+        n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
+        n_total = n_total + length(testnull)
+        pvalue<- n_sig/n_total
+        pvaluecutoff <- 100/n_resample_total
         if(pvaluecutoff <= pvalue){
           break
         }
+        gc()
       }
     }
   }
@@ -461,12 +621,14 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
 #'           \item `total`: numeric, snp-level total read counts for both alleles;
 #'       }
 #' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
+#' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling.
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
+#' @param n_core: a numeric value indicates number of clusters used for parallel computing when paramter "parallel" is set to TRUE. Default is 1
 #' @param save_out: a logical value indicates whether to write out the result for each gene stepwisely to a txt file. Default is FALSE
 #' @param name_out: a character string indicates the output file name when save_out is set to TRUE, with the format of "XXX.txt"
 #' @return A matrix with three columns:
@@ -477,28 +639,33 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, adaptive=TRUE, n_res
 #' @export
 #' @import parallel
 
-ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, save_out=FALSE, name_out=NULL){
+ASE_detection <- function(dat_all, phased=FALSE, varList=NULL, adaptive=TRUE, n_resample=10^6, parallel=FALSE, n_core=1, save_out=FALSE, name_out=NULL){
   dat_all = as.data.frame(dat_all)
-  result_all=NULL
   if(save_out){
     file.create(name_out)
     re_out<-name_out
-    write(c('gene','p-value'), re_out, sep="\t",append=TRUE)
+    write(c('gene','p-value'), re_out, sep="\t",append=TRUE,ncolumns=2)
+  }else{
+    result_all=NULL
   }
   if ("gene" %in% colnames(dat_all)){
     dat_all$gene = as.character(dat_all$gene)
     for(gene in unique(dat_all$gene)){
       dat = dat_all[which(dat_all$gene==gene),]
-      result = one_condition_analysis_Gene(dat=dat, phased=phased, adaptive=adaptive, n_resample=n_resample, parallel=parallel)
-      result_all = rbind(result_all,c('gene'=gene,result[2]))
+      result = one_condition_analysis_Gene(dat=dat, phased=phased, varList=varList, adaptive=adaptive, n_resample=n_resample, parallel=parallel,n_core=n_core)
       if(save_out){
-        write(c('gene'=gene,result), re_out, sep="\t",append=TRUE)
+        write(c('gene'=gene,result[2]), re_out, sep="\t",append=TRUE,ncolumns=2)
+      }else{
+        result_all = rbind(result_all,c('gene'=gene,result[2]))
       }
+      gc()
     }
   }else{
     stop('Error: Data must contain column: "gene".')
   }
-  return(result_all)
+  if(!save_out){
+    return(result_all)
+  }
 }
 
 #' @title Perform gene-level differential ASE analysis in the population across genes
@@ -515,12 +682,14 @@ ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6,
 #'          \item `ref_condition`: character, the condition used as the reference for pseudo haplotype phasing;
 #'       }
 #' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
+#' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
 #' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling.
 #' @param parallel: a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE
+#' @param n_core: a numeric value indicates number of clusters used for parallel computing when parameter "parallel" is set to TRUE. Default is 1
 #' @param save_out: a logical value indicates whether to write out the result for each gene stepwisely to a txt file. Default is FALSE
 #' @param name_out: a character string indicates the output file name when save_out is set to TRUE, with the format of "XXX.txt"
 #' @return  A matrix with three columns:
@@ -532,13 +701,14 @@ ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6,
 #' @import parallel
 
 
-differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_resample=10^6, parallel=FALSE, save_out=FALSE, name_out=NULL){
+differential_ASE_detection <- function(dat_all, phased=FALSE, varList=NULL, adaptive=TRUE, n_resample=10^6, parallel=FALSE, n_core=1, save_out=FALSE, name_out=NULL){
   dat_all = as.data.frame(dat_all)
-  result_all=NULL
   if(save_out){
     file.create(name_out)
     re_out<-name_out
-    write(c('gene','p-value'), re_out, sep="\t",append=TRUE)
+    write(c('gene','p-value'), re_out, sep="\t",append=TRUE, ncolumns=2)
+  }else{
+    result_all=NULL
   }
   if ("gene" %in% colnames(dat_all)){
     dat_all$gene = as.character(dat_all$gene)
@@ -547,10 +717,11 @@ differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_r
       if( "ref_condition" %in% colnames(dat)){
         ref_condition = unique(dat$ref_condition)
         if(length(ref_condition)==1){
-          result = two_conditions_analysis_Gene(dat=dat, phased=phased, adaptive=adaptive, n_resample=n_resample, parallel=parallel)
-          result_all = rbind(result_all,c('gene'=gene,result[2]))
+          result = two_conditions_analysis_Gene(dat=dat, phased=phased, varList=varList, adaptive=adaptive, n_resample=n_resample, parallel=parallel, n_core=n_core)
           if(save_out){
-            write(c('gene'=gene,result), re_out, sep="\t",append=TRUE)
+            write(c('gene'=gene,result[2]), re_out, sep="\t",append=TRUE,ncolumns=2)
+          }else{
+            result_all = rbind(result_all,c('gene'=gene,result[2]))
           }
         }else{
           stop('Error: for each gene, there should be one and only one condition used as "ref_condition".')
@@ -558,11 +729,14 @@ differential_ASE_detection <- function(dat_all, phased=FALSE, adaptive=TRUE, n_r
       }else{
         stop('Error: Data must contain column: "ref_condition".')
       }
+      gc()
     }
   }else{
     stop('Error: Data must contain column: "gene".')
   }
-  return(result_all)
+  if(!save_out){
+    return(result_all)
+  }
 }
 
 #' @title Boxplot of the estimated SNP-level ASE
@@ -597,7 +771,7 @@ plot_ASE <- function(dat, phased=FALSE){
       dat_sort=aggregate(MAF ~ id ,data=dat_phase, median)
       dat_sort=dat_sort[order(dat_sort$MAF),]
       id_order=as.character(dat_sort$id)
-      g = ggplot(data=dat_phase,aes(y = MAF, x = id)) + 
+      g = ggplot(data=dat_phase,aes(y = MAF, x = id)) +
         geom_boxplot(aes(y = MAF, x = id, group=id)) +
           geom_point(data=dat_phase,aes(y = MAF, x = id, color=snp))+theme_classic()+
           geom_hline(yintercept = 0.5, linetype = "dashed",color='gray',size=1)+

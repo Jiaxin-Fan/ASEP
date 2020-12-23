@@ -7,9 +7,11 @@
 two_conditions_analysis_Gene(
   dat,
   phased = FALSE,
+  varList = NULL,
   adaptive = TRUE,
   n_resample = 10^6,
-  parallel = FALSE
+  parallel = FALSE,
+  n_core = 1
 )
 }
 \arguments{
@@ -25,6 +27,8 @@ two_conditions_analysis_Gene(
 
 \item{phased:}{a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE}
 
+\item{varList:}{a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL}
+
 \item{n_resample:}{a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6}
 
 \item{adaptive:}{a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
@@ -33,6 +37,8 @@ if then the estimated p-value < 0.01, increase the number of resampling again, b
 The procedure continuous until reaches the maximum number of resampling. \cr}
 
 \item{parallel:}{a logical value indicates whether do parallel computing for the resampling precedure or not. Default is FALSE}
+
+\item{n_core:}{a numeric value indicates number of clusters used for parallel computing when parameter "parallel" is set to TRUE. Default is 1}
 }
 \value{
 A vector with two elements:

@@ -104,10 +104,12 @@ In order to detect gene-level ASE effect in the population, the first step is to
 
 * `dat_all`: data frame, the input RNA-seq data with the format as shown in the "Data" session;
 * `phased`: logical, indicates whether the haplotype phase is known or not. Default is `FALSE`;
+* `varList`: character, specifies fomula of covariates included in the regression model. An example of `varList` could be `"age+sex"`. Default is `NULL`;
 * `n_resample`: numeric, the maximum number of resamplings performed to obtain the estimated p-value. Default is $10^6$;
 * `adaptive`: logical, indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE;
   + By adaptive, it means we first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4. If then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5. The procedure continuous until reaches the maximum number of resampling.
 * `parallel`: logical, indicates whether do parallel computing for the resampling or not. Default is `FALSE`;
+* `n_core`: numeric, indicates number of clusters used for parallel computing when parallel is set to `TRUE`. Default is 1;
 * `save_out`: logical, indicates whether to write out the result for each gene stepwisely to a txt file or not. Default is `FALSE`;
 * `name_out`: character, the output txt file name when `save_out` is set to `TRUE`, with the format of "XXX.txt".
 
@@ -159,9 +161,9 @@ We performed ASE detection on both M0 and M1 macrophages samples. We use the fun
 
 ```{r one_condiiton_analysis}
 # result for M0 macrophages
-ASE_detection(dat_all = dat_M0, phased=FALSE, adaptive=TRUE, n_resample=10^3, parallel=FALSE, save_out=FALSE)
+ASE_detection(dat_all = dat_M0, phased=FALSE, varList=NULL, adaptive=TRUE, n_resample=10^3, parallel=FALSE, save_out=FALSE)
 # result for M1 macrophages
-ASE_detection(dat_all = dat_M1, phased=FALSE, adaptive=TRUE, n_resample=10^3, parallel=FALSE, save_out=FALSE)
+ASE_detection(dat_all = dat_M1, phased=FALSE, varList=NULL, adaptive=TRUE, n_resample=10^3, parallel=FALSE, save_out=FALSE)
 ```
 
 We do not output the data after pseudo alignment when using function `ASE_detection`. However, function `phasing` can be used to obtain the phased data for a given gene. The essential inputs for `phasing` are:
@@ -236,7 +238,7 @@ Next, a generalized linear mixed-effects model is also employed for differential
 Below, we performed differential ASE detection on the example gene PIEZO1. For presentation purpose and to save running time, we decrease the number of resampling to $10^3$, and perform the analysis without parallel computing.
 
 ```{r two_condition_analysis}
-differential_ASE_detection(dat, phased=FALSE, adaptive=TRUE, n_resample=10^3, parallel=FALSE, save_out=FALSE)
+differential_ASE_detection(dat, phased=FALSE, varList=NULL, adaptive=TRUE, n_resample=10^3, parallel=FALSE, save_out=FALSE)
 ```
 
 Again, we do not output the pseudo aligned data when using function `differential_ASE_detection`. However, function `phasing` can be used to obtain the phased data for a given gene. The table below show the RNA-seq data after pseudo alignment.

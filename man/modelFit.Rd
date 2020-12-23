@@ -4,7 +4,12 @@
 \alias{modelFit}
 \title{Model Fitting}
 \usage{
-modelFit(dat_phase, n_condition = "one", resampled_data = FALSE)
+modelFit(
+  dat_phase,
+  n_condition = "one",
+  resampled_data = FALSE,
+  varList = NULL
+)
 }
 \arguments{
 \item{dat_phase:}{Psudo-phased bulk RNA-seq data of a given gene}
@@ -12,6 +17,8 @@ modelFit(dat_phase, n_condition = "one", resampled_data = FALSE)
 \item{n_condition:}{a character string indicates whether to perform one condition analysis or two conditions analysis. Possible values are "one" or "two". Default is "one"}
 
 \item{resampled_data:}{a logical value indicates whether the data analyzed is obtained from resampling or not. Used only for two conditions analysis. Default is FALSE}
+
+\item{varList:}{a character string specifies fomula of covariates that users want to adjusted in the model, e.g., "`var1`+`var2`". Default is NULL}
 }
 \value{
 \itemize{

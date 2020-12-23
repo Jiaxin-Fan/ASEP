@@ -11,9 +11,9 @@ How to cite `ASEP`
 -------------------
 Please cite the following publication:
 
-> *ASEP: gene-based detection of allele-specific expression in a population by RNA-seq*<br />
-> <small>J. Fan, J. Hu, C. Xue, H. Zhang, M. Reilly, R. Xiao, M. Li<br /></small>
-> (https://www.biorxiv.org/content/10.1101/798124v1) 
+> *ASEP: gene-based detection of allele-specific expression across individuals in a population by RNA sequencing*<br />
+> <small>J. Fan, J. Hu, C. Xue, H. Zhang, k. Susztak, M. Reilly, R. Xiao, M. Li<br /></small>
+> (https://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1008786) 
 
 Installation
 ------------
