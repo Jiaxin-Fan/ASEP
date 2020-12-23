@@ -654,9 +654,9 @@ ASE_detection <- function(dat_all, phased=FALSE, varList=NULL, adaptive=TRUE, n_
       dat = dat_all[which(dat_all$gene==gene),]
       result = one_condition_analysis_Gene(dat=dat, phased=phased, varList=varList, adaptive=adaptive, n_resample=n_resample, parallel=parallel,n_core=n_core)
       if(save_out){
-        write(c('gene'=gene,result[2]), re_out, sep="\t",append=TRUE,ncolumns=2)
+        write(c('gene'=gene, result[2]), re_out, sep="\t", append=TRUE, ncolumns=2)
       }else{
-        result_all = rbind(result_all,c('gene'=gene,result[2]))
+        result_all = rbind(result_all,c('gene'=gene, result[2]))
       }
       gc()
     }
