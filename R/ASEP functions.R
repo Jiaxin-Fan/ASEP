@@ -120,9 +120,9 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
                                     family=binomial(link=logit), data=dat_phase)})
     }
     if(!is.null(varList)){
-      fom1 = as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
-      fom2 = as.formula(paste('cbind(major,(total-major))~ (1|id) +',varList,sep=''))
-      np = allvc(fom1,random=~1|id,
+      fom1 <<- as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
+      fom2 <<- as.formula(paste('cbind(major,(total-major))~ (1|id) +',varList,sep=''))
+      np = allvc(formula = fom1, random=~1|id,
                  family=binomial(link=logit), data=dat_phase, k=2,
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
       mod = suppressMessages({glmer(fom2,family=binomial(link=logit), data=dat_phase)})
@@ -145,11 +145,11 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
                   random.distribution='np',plot.opt = 0, verbose = FALSE)
     }
     if(!is.null(varList)){
-      fom1 = as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
-      np = allvc(fom1,random=~group|id,
+      fom1 <<- as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
+      np = allvc(formula = fom1, random=~group|id,
                  family=binomial(link=logit),data=dat_phase, k=2,
                  random.distribution='np', plot.opt = 0, verbose = FALSE)
-      mod = allvc(fom1,random=~1|id,
+      mod = allvc(formula = fom1, random=~1|id,
                   family=binomial(link=logit), data=dat_phase, k=2,
                   random.distribution='np',plot.opt = 0, verbose = FALSE)
     }
@@ -185,8 +185,7 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
           return(lrt)
         }
       }
-    }
-  else{
+  }else{
     stop('Error: "condition" only takes value "one" or "two".')
   }
 }
@@ -322,7 +321,7 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, n_resam
       n_total = 0
       for(simulation in simulationList){
           xgene <- sapply(dat_phase$total,function(x){rbinom(n=simulation,size=x,prob=0.5)})
-          clusterExport(clus,list('dat_phase','phasing','modelFit','varList'), envir=environment())
+          clusterExport(clus,list('dat_phase','phasing','modelFit','varList','allvc'), envir=environment())
           testnull<-parRapply(clus,xgene,function(x){
             ref<-x
             dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
@@ -364,7 +363,7 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, n_resam
           n_resample_total = sum(simulationList[1:i])
           simulation <- simulationList[i]
           xgene<-sapply(dat_phase$total,function(x){rbinom(n=simulation,size=x,prob=0.5)})
-          clusterExport(clus,list('dat_phase','phasing','modelFit','varList'), envir=environment())
+          clusterExport(clus,list('dat_phase','phasing','modelFit','varList','allvc'), envir=environment())
           testnull<-parRapply(clus,xgene,function(x){
             ref<-x
             dat_resam<-data.frame(ref,dat_phase[ , !(names(dat_phase) %in% c("ref","major"))])
@@ -479,7 +478,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
         testnull<-na.omit(testnull)
         n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
         n_total = n_total + length(testnull)
-        gc()
+        invisible(gc())
       }
       pvalue<- n_sig/n_total
     }
@@ -523,7 +522,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
         if(pvaluecutoff <= pvalue){
           break
         }
-        gc()
+        invisible(gc())
       }
     }
 
@@ -545,7 +544,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
       n_total = 0
       for(simulation in simulationList){
         xgene<-apply(gen,1,function(x){rbinom(simulation,x[1],x[2])})
-        clusterExport(clus,list('dat_allpoolp','phasing','modelFit','varList'), envir=environment())
+        clusterExport(clus,list('dat_allpoolp','phasing','modelFit','varList','allvc'), envir=environment())
         testnull<-parRapply(clus,xgene,function(x){
           ref<-x
           dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
@@ -556,7 +555,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
         testnull<-na.omit(testnull)
         n_sig = n_sig + sum(ifelse(testnull>=lrt,1,0))
         n_total = n_total + length(testnull)
-        gc()
+        invisible(gc())
       }
       pvalue<- n_sig/n_total
       stopCluster(clus)
@@ -587,7 +586,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
         n_resample_total = sum(simulationList[1:i])
         simulation <- simulationList[i]
         xgene<-apply(gen,1,function(x){rbinom(simulation,x[1],x[2])})
-        clusterExport(clus,list('dat_allpoolp','phasing','modelFit','varList'), envir=environment())
+        clusterExport(clus,list('dat_allpoolp','phasing','modelFit','varList','allvc'), envir=environment())
         testnull<-parRapply(clus,xgene,function(x){
           ref<-x
           dat_resam<-data.frame(ref,dat_allpoolp[ , !(names(dat_allpoolp) %in% c("ref","major","poolp"))])
@@ -603,8 +602,9 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
         if(pvaluecutoff <= pvalue){
           break
         }
-        gc()
+        invisible(gc())
       }
+      stopCluster(clus)
     }
   }
   return(c("LRT statistic" = unname(lrt), "p-value" = pvalue))
@@ -717,7 +717,7 @@ differential_ASE_detection <- function(dat_all, phased=FALSE, varList=NULL, adap
       if( "ref_condition" %in% colnames(dat)){
         ref_condition = unique(dat$ref_condition)
         if(length(ref_condition)==1){
-          result = two_conditions_analysis_Gene(dat=dat, phased=phased, varList=varList, adaptive=adaptive, n_resample=n_resample, parallel=parallel, n_core=n_core)
+          result = two_conditions_analysis_Gene(dat=dat, phased=phased, varList=varList, adaptive=adaptive, n_resample=n_resample, parallel=parallel, n_core = n_core)
           if(save_out){
             write(c('gene'=gene,result[2]), re_out, sep="\t",append=TRUE,ncolumns=2)
           }else{
@@ -729,7 +729,7 @@ differential_ASE_detection <- function(dat_all, phased=FALSE, varList=NULL, adap
       }else{
         stop('Error: Data must contain column: "ref_condition".')
       }
-      gc()
+      invisible(gc())
     }
   }else{
     stop('Error: Data must contain column: "gene".')
