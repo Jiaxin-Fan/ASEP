@@ -127,8 +127,8 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
       mod = suppressMessages({glmer(fom2,family=binomial(link=logit), data=dat_phase)})
     }
-    # check model convergence
-    if(np$EMconverged & summary(mod)$optinfo$conv$opt==0){
+    # check model convergence, need to rule out scenario where there is not enough sample for model fitting and cause some parameters to be NA
+    if(np$EMconverged & summary(mod)$optinfo$conv$opt==0 & sum(is.na(np$coefficients))==0){
         logl1 = np$disparity
         logl0 = as.vector(summary(mod)$devcomp$cmp['dev'])
         lrt = logl0-logl1
@@ -154,7 +154,7 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
                   random.distribution='np',plot.opt = 0, verbose = FALSE)
     }
     # check model convergence
-    if(np$EMconverged & mod$EMconverged){
+    if(np$EMconverged & mod$EMconverged & sum(is.na(np$coefficients))==0){
         logl1 = np$disparity
         logl0 = mod$disparity
         lrt = logl0-logl1
