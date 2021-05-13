@@ -116,8 +116,9 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
       np = allvc(cbind(major,(total-major))~1,random=~1|id,
                  family=binomial(link=logit), data=dat_phase, k=2,
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
-      mod = suppressMessages({glmer(cbind(major,(total-major)) ~ (1|id),
-                                    family=binomial(link=logit), data=dat_phase)})
+      mod = tryCatch(suppressMessages({glmer(cbind(major,(total-major)) ~ (1|id),
+                                    family=binomial(link=logit), data=dat_phase)}),
+                     error = function(e){return(NA)})
     }
     if(!is.null(varList)){
       fom1 <<- as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
@@ -125,13 +126,16 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
       np = allvc(formula = fom1, random=~1|id,
                  family=binomial(link=logit), data=dat_phase, k=2,
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
-      mod = suppressMessages({glmer(fom2,family=binomial(link=logit), data=dat_phase)})
+      mod = tryCatch(suppressMessages({glmer(fom2,family=binomial(link=logit), data=dat_phase)}),
+                     error = function(e){return(NA)})
     }
     # check model convergence, need to rule out scenario where there is not enough sample for model fitting and cause some parameters to be NA
-    if(np$EMconverged & summary(mod)$optinfo$conv$opt==0 & sum(is.na(np$coefficients))==0){
+    if(!is.na(mod)){
+      if(np$EMconverged & summary(mod)$optinfo$conv$opt==0 & sum(is.na(np$coefficients))==0){
         logl1 = np$disparity
         logl0 = as.vector(summary(mod)$devcomp$cmp['dev'])
         lrt = logl0-logl1
+      }
     }
     return(lrt)
   }
@@ -154,7 +158,7 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
                   random.distribution='np',plot.opt = 0, verbose = FALSE)
     }
     # check model convergence
-    if(np$EMconverged & mod$EMconverged & sum(is.na(np$coefficients))==0){
+    if(np$EMconverged & mod$EMconverged & sum(is.na(np$coefficients))==0 & sum(is.na(mod$coefficients))==0){
         logl1 = np$disparity
         logl0 = mod$disparity
         lrt = logl0-logl1
@@ -184,6 +188,8 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
         }else{
           return(lrt)
         }
+    }else{
+        return(lrt)
       }
   }else{
     stop('Error: "condition" only takes value "one" or "two".')
