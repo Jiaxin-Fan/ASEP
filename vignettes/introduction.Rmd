@@ -106,7 +106,7 @@ In order to detect gene-level ASE effect in the population, the first step is to
 * `phased`: logical, indicates whether the haplotype phase is known or not. Default is `FALSE`;
 * `varList`: character, specifies fomula of covariates included in the regression model. An example of `varList` could be `"age+sex"`. Default is `NULL`;
 * `n_resample`: numeric, the maximum number of resamplings performed to obtain the estimated p-value. Default is $10^6$;
-* `adaptive`: logical, indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE;
+* `adaptive`: logical, indicates whether the resampling is done through an adaptive procedure or not. Only applies when `n_resample` $\ge 10^3$. Default is TRUE;
   + By adaptive, it means we first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4. If then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5. The procedure continuous until reaches the maximum number of resampling.
 * `parallel`: logical, indicates whether do parallel computing for the resampling or not. Default is `FALSE`;
 * `n_core`: numeric, indicates number of clusters used for parallel computing when parallel is set to `TRUE`. Default is 1;

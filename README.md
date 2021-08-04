@@ -13,7 +13,7 @@ Please cite the following publication:
 
 > *ASEP: gene-based detection of allele-specific expression across individuals in a population by RNA sequencing*<br />
 > <small>J. Fan, J. Hu, C. Xue, H. Zhang, k. Susztak, M. Reilly, R. Xiao, M. Li<br /></small>
-> (https://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1008786) 
+> *PLOS Genetics 16(5): e1008786.* https://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1008786<br />
 
 Installation
 ------------
