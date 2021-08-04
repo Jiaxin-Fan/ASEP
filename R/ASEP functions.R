@@ -118,7 +118,7 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
       mod = tryCatch(suppressMessages({glmer(cbind(major,(total-major)) ~ (1|id),
                                     family=binomial(link=logit), data=dat_phase)}),
-                     error = function(e){return(NA)})
+                     error = function(e){return(NULL)})
     }
     if(!is.null(varList)){
       fom1 <<- as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
@@ -127,10 +127,10 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
                  family=binomial(link=logit), data=dat_phase, k=2,
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
       mod = tryCatch(suppressMessages({glmer(fom2,family=binomial(link=logit), data=dat_phase)}),
-                     error = function(e){return(NA)})
+                     error = function(e){return(NULL)})
     }
     # check model convergence, need to rule out scenario where there is not enough sample for model fitting and cause some parameters to be NA
-    if(!is.na(mod)){
+    if(!is.null(mod)){
       if(np$EMconverged & summary(mod)$optinfo$conv$opt==0 & sum(is.na(np$coefficients))==0){
         logl1 = np$disparity
         logl0 = as.vector(summary(mod)$devcomp$cmp['dev'])
@@ -206,9 +206,9 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
 #'                  \item `total`: numeric, snp-level total read counts for both alleles;
 #'             }
 #' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
-#' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
+#' @param varList: a character string specifies formula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
-#' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
+#' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Only applies when n_resample >= 10^3. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
@@ -267,6 +267,7 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, n_resam
     }
 
     if((!parallel) & adaptive){
+        if(n_resample<10^3){stop('Error: adaptive function only applies when n_resample >= 1000.')}
         n_1 = log(n_resample,base=10)
         n_2 = floor(n_1)
         if(n_resample>5*10^4){
@@ -345,6 +346,7 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, n_resam
     }
 
     if(parallel & adaptive){
+      if(n_resample<10^3){stop('Error: adaptive function only applies when n_resample >= 1000.')}
       clus=makeCluster(n_core)
       n_1 = log(n_resample,base=10)
       n_2 = floor(n_1)
@@ -408,7 +410,7 @@ one_condition_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, n_resam
 #' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
 #' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
-#' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
+#' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Only applies when n_resample >= 10^3. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling. \cr
@@ -490,6 +492,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
     }
 
     if(!parallel & adaptive){
+      if(n_resample<10^3){stop('Error: adaptive function only applies when n_resample >= 1000.')}
       n_1 = log(n_resample,base=10)
       n_2 = floor(n_1)
       if(n_resample>5*10^4){
@@ -568,6 +571,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
     }
 
     if(parallel & adaptive){
+      if(n_resample<10^3){stop('Error: adaptive function only applies when n_resample >= 1000.')}
       clus=makeCluster(n_core)
       n_1 = log(n_resample,base=10)
       n_2 = floor(n_1)
@@ -629,7 +633,7 @@ two_conditions_analysis_Gene <- function(dat, phased=FALSE, varList=NULL, adapti
 #' @param phased: a logical value indicates whether the haplotype phase of the data is known or not. Default is FALSE
 #' @param varList: a character string specifies fomula of covariates that users want to adjusted in the model. An example could be "`var1`+`var2`". Default is NULL
 #' @param n_resample: a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6
-#' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
+#' @param adaptive: a logical value indicates whether the resampling is done through an adaptive procedure or not. Only applies when n_resample >= 10^3. Default is TRUE \cr
 #'     By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 #'     if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 #'     The procedure continuous until reaches the maximum number of resampling.

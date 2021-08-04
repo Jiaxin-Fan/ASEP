@@ -31,7 +31,7 @@ ASE_detection(
 
 \item{n_resample:}{a numeric value indicates the maximum number of resamplings performed to obtain estimated p-value. Default is 10^6}
 
-\item{adaptive:}{a logical value indicates whether the resampling is done through an adaptive procedure or not. Default is TRUE \cr
+\item{adaptive:}{a logical value indicates whether the resampling is done through an adaptive procedure or not. Only applies when n_resample >= 10^3. Default is TRUE \cr
 By adaptive, it means first do 1000 resamplings, if the estimated p-value < 0.1, increase the number of resampling, by a factor of 10, to 10^4.
 if then the estimated p-value < 0.01, increase the number of resampling again, by a factor of 10, to 10^5.
 The procedure continuous until reaches the maximum number of resampling.}
