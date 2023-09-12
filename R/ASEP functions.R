@@ -114,19 +114,19 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
   if (n_condition == "one"){
     if(is.null(varList)){
       np = allvc(cbind(major,(total-major))~1,random=~1|id,
-                 family=binomial(link=logit), data=dat_phase, k=2,
+                 family=binomial(link="logit"), data=dat_phase, k=2,
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
       mod = tryCatch(suppressMessages({glmer(cbind(major,(total-major)) ~ (1|id),
-                                    family=binomial(link=logit), data=dat_phase)}),
+                                    family=binomial(link="logit"), data=dat_phase)}),
                      error = function(e){return(NULL)})
     }
     if(!is.null(varList)){
       fom1 <<- as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
       fom2 <<- as.formula(paste('cbind(major,(total-major))~ (1|id) +',varList,sep=''))
       np = allvc(formula = fom1, random=~1|id,
-                 family=binomial(link=logit), data=dat_phase, k=2,
+                 family=binomial(link="logit"), data=dat_phase, k=2,
                  random.distribution='np',plot.opt = 0, verbose = FALSE)
-      mod = tryCatch(suppressMessages({glmer(fom2,family=binomial(link=logit), data=dat_phase)}),
+      mod = tryCatch(suppressMessages({glmer(fom2,family=binomial(link="logit"), data=dat_phase)}),
                      error = function(e){return(NULL)})
     }
     # check model convergence, need to rule out scenario where there is not enough sample for model fitting and cause some parameters to be NA
@@ -142,19 +142,19 @@ modelFit<-function(dat_phase, n_condition="one", resampled_data=FALSE, varList=N
   else if (n_condition == "two"){
     if(is.null(varList)){
       np = allvc(cbind(major,(total-major))~1,random=~group|id,
-                 family=binomial(link=logit),data=dat_phase, k=2,
+                 family=binomial(link="logit"),data=dat_phase, k=2,
                  random.distribution='np', plot.opt = 0, verbose = FALSE)
       mod = allvc(cbind(major,(total-major))~1,random=~1|id,
-                  family=binomial(link=logit), data=dat_phase, k=2,
+                  family=binomial(link="logit"), data=dat_phase, k=2,
                   random.distribution='np',plot.opt = 0, verbose = FALSE)
     }
     if(!is.null(varList)){
       fom1 <<- as.formula(paste('cbind(major,(total-major))~',varList,sep=''))
       np = allvc(formula = fom1, random=~group|id,
-                 family=binomial(link=logit),data=dat_phase, k=2,
+                 family=binomial(link="logit"),data=dat_phase, k=2,
                  random.distribution='np', plot.opt = 0, verbose = FALSE)
       mod = allvc(formula = fom1, random=~1|id,
-                  family=binomial(link=logit), data=dat_phase, k=2,
+                  family=binomial(link="logit"), data=dat_phase, k=2,
                   random.distribution='np',plot.opt = 0, verbose = FALSE)
     }
     # check model convergence
